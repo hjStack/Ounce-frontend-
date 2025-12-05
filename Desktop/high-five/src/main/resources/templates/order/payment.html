@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HIGH-FIVE 도서 | 결제하기</title>
+    <style>
+      :root {
+        --color-primary: #007bff;
+        --color-accent: #e9c46a;
+        --color-background: #fcf8f5;
+        --color-dark-footer: #3e2723;
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        background: var(--color-background);
+        color: var(--color-text-dark);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+
+      /* ===== 헤더 (메인과 동일) ===== */
+      #header {
+        background: #fff;
+        border-bottom: 3px solid var(--color-primary);
+        padding: 12px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 12px 20px;
+
+      }
+      #header .container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+      }
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080;
+        margin-top: 5px;
+      }
+      .gnb {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .search-box {
+        display: flex;
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        width: 520px;
+        max-width: 100%;
+      }
+      .search-box input {
+        flex: 1;
+        border: 0;
+        padding: 10px 14px;
+        outline: none;
+      }
+      .search-box button {
+        background: var(--color-primary);
+        color: #fff;
+        padding: 10px 16px;
+        border: 0;
+      }
+      .menu-row {
+        display: flex;
+        gap: 18px;
+        margin-top: 8px;
+        list-style: none;
+      }
+      .menu-row a {
+        color: #333;
+        font-weight: 600;
+      }
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+      }
+      .user-menu .user-link {
+        display: inline-block;
+        font-weight: 700;
+        color: #333;
+        padding: 6px 8px;
+      }
+      .user-menu .user-link:hover {
+        color: var(--color-primary);
+      }
+      .user-menu .user-link.pill {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+      }
+      .user-menu .user-link.pill:hover {
+        background: var(--color-accent);
+        color: #fff;
+      }
+
+      /* ===== 결제 본문 ===== */
+      main {
+        flex: 1;
+        padding: 26px 0;
+      }
+      .pay-wrap {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 20px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--color-border-light);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel .hd {
+        padding: 16px 18px;
+        border-bottom: 1px solid var(--color-border-light);
+        font-weight: 800;
+      }
+      .panel .bd {
+        padding: 18px;
+      }
+
+      /* 주문 요약(간단) */
+      .summary .row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--color-border);
+      }
+      .summary .row:last-child {
+        border-bottom: 0;
+      }
+      .summary .big {
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      /* 결제수단 */
+      .tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .tab {
+        flex: 1 1 140px;
+        text-align: center;
+        border: 1px solid var(--color-border);
+        background: #fafafa;
+        padding: 10px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 700;
+      }
+      .tab.active {
+        border-color: var(--color-primary);
+        background: #eaf2ff;
+        color: #004a9f;
+      }
+      .pay-content {
+        margin-top: 14px;
+        border: 1px dashed var(--color-border);
+        border-radius: 8px;
+        padding: 16px;
+        color: var(--color-text-light);
+        font-size: 14px;
+      }
+
+      .amount {
+        margin-top: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .amount .label {
+        color: #666;
+      }
+      .amount .value {
+        font-size: 28px;
+        font-weight: 900;
+      }
+
+      .pay-btn {
+        margin-top: 16px;
+        width: 100%;
+        padding: 14px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--color-primary);
+        color: #fff;
+        font-weight: 900;
+        font-size: 16px;
+        cursor: pointer;
+      }
+      .pay-btn:hover {
+        filter: brightness(0.95);
+      }
+
+      /* 푸터 */
+      #footer {
+        background: var(--color-dark-footer);
+        color: #a0a0a0;
+        padding: 34px 0;
+        font-size: 13px;
+        margin-top: 32px;
+      }
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: #fff;
+      }
+      .footer-info {
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+      }
+      .footer-info > div {
+        flex: 1;
+        line-height: 1.8;
+      }
+      .footer-info strong {
+        color: #c0c0c0;
+      }
+
+      @media (max-width: 980px) {
+        .pay-wrap {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== 헤더 ===== -->
+    <header id="header">
+      <div class="container">
+        <div class="logo">
+          <img src="../img/high-five.png" alt="logo" width="100" height="100" />
+          <div class="brand">HIGH-FIVE BOOKS</div>
+        </div>
+        <nav class="gnb" aria-label="주요 메뉴">
+          <div class="search-box" role="search">
+            <input
+              type="search"
+              placeholder="도서명, 저자, ISBN, 태그 검색"
+              aria-label="통합 검색"
+            />
+            <button>검색</button>
+          </div>
+
+        </nav>
+        <div class="user-menu">
+          <a class="user-link" href="mypage.html">마이페이지</a>
+          <a class="user-link" href="cart.html">장바구니</a>
+          <a class="user-link pill" href="./login.html">로그인</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== 본문 ===== -->
+    <main>
+      <div class="container">
+        <h1 style="font-size: 22px; margin-bottom: 12px">결제하기</h1>
+
+        <div class="pay-wrap">
+          <!-- 좌: 결제수단 선택 -->
+          <section class="panel">
+            <div class="hd">결제 수단</div>
+            <div class="bd">
+              <div class="tabs" id="payTabs">
+                <button class="tab active" data-key="card">신용카드</button>
+                <button class="tab" data-key="account">계좌이체</button>
+                <button class="tab" data-key="tosspay">TossPay</button>
+                <button class="tab" data-key="payco">PAYCO</button>
+              </div>
+
+              <div class="pay-content" id="payContent">
+                신용카드로 결제합니다. (예: 카드사/할부 선택 UI는 추후 연동)
+              </div>
+
+              <div class="amount">
+                <span class="label">최종 결제 금액</span>
+                <strong class="value" id="finalAmount">38,700원</strong>
+              </div>
+
+              <button class="pay-btn" id="payBtn">결제하기</button>
+            </div>
+          </section>
+
+          <!-- 우: 주문 요약(간단) -->
+          <aside class="panel summary">
+            <div class="hd">주문 요약</div>
+            <div class="bd">
+              <div class="row">
+                <span>상품금액</span><span id="sumProducts">35,700원</span>
+              </div>
+              <div class="row">
+                <span>배송비</span><span id="sumShipping">3,000원</span>
+              </div>
+              <div class="row">
+                <span>할인</span><span id="sumDiscount">0원</span>
+              </div>
+              <div class="row">
+                <span class="big">결제예정금액</span
+                ><span class="big" id="sumTotal">38,700원</span>
+              </div>
+              <p
+                style="
+                  margin-top: 10px;
+                  color: var(--color-text-light);
+                  font-size: 13px;
+                "
+              >
+                2만 원 이상 무료배송 (기본 3,000원)
+              </p>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== 푸터 ===== -->
+    <footer id="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#"><strong>개인정보처리방침</strong></a>
+          <a href="#">고객센터</a>
+        </div>
+        <div class="footer-info">
+          <div>
+            <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+            통신판매업신고 2024-광주동구-01211 | 이메일: help@highfive.com<br />
+            호스팅 제공자 NHN24 © HIGH-FIVE BOOKS. All Rights Reserved.
+          </div>
+          <div>
+            <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+            광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+            Fax 062-1234-5678
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // 탭 전환(간단 안내 문구만 변경)
+      const tabEls = document.querySelectorAll(".tab");
+      const contentEl = document.getElementById("payContent");
+      const copy = {
+        card: "신용카드로 결제합니다. (예: 카드사/할부 선택 UI는 추후 연동)",
+        account:
+          "계좌이체로 결제합니다. (예: 은행 선택, 예금주 인증은 추후 연동)",
+        tosspay: "토스페이 결제 화면으로 이동합니다. (SDK 연동 예정)",
+        payco: "PAYCO로 결제합니다. (SDK 연동 예정)",
+      };
+      tabEls.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabEls.forEach((b) => b.classList.remove("active"));
+          btn.classList.add("active");
+          const key = btn.dataset.key;
+          contentEl.textContent = copy[key];
+        });
+      });
+
+      // 결제 버튼(더미)
+      document.getElementById("payBtn").addEventListener("click", () => {
+        const active = document
+          .querySelector(".tab.active")
+          ?.textContent.trim();
+        const amount = document.getElementById("finalAmount").textContent;
+        alert(
+          `[데모] ${active}로 ${amount} 결제를 진행합니다.\n(실결제는 PG 연동 필요)`
+        );
+        // 실제 연동 시: 결제요청 API 호출 → PG SDK/결제창 호출 → 결과 처리
+      });
+    </script>
+  </body>
+</html>

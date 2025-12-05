@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>서점 로그인</title>
+    <style>
+      /* style.css - 모던 & 아늑한 서점 테마 */
+
+      /* ------------------------------------- */
+      /* **핵심 서점 테마 컬러 변수** */
+      /* ------------------------------------- */
+
+      :root {
+        --color-primary: #007bff; /* 짙은 포레스트 블루 (기존 그린을 파란색으로 변경) */
+        --color-accent: #e9c46a; /* 빈티지 골드/옐로 (따뜻한 포인트) */
+        --color-background: #fcf8f5; /* (기존과 동일) */
+        --color-dark-footer: #3e2723; /* (기존과 동일) */
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+      }
+      /* ------------------------------------- */
+      /* 1. 기본 설정 및 초기화 */
+      /* ------------------------------------- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        color: var(--color-text-dark);
+        line-height: 1.6;
+        background-color: var(--color-background); /* 베이지 배경 */
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      a:hover {
+        color: var(--color-accent); /* 호버 시 따뜻한 코랄 */
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+      }
+
+      input {
+        font-family: inherit;
+      }
+
+      /* 레이아웃 편의를 위한 .container 클래스 */
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      .writing {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* ------------------------------------- */
+      /* 2. 헤더 스타일링 */
+      /* ------------------------------------- */
+
+      #header {
+        background-color: #ffffff;
+        border-bottom: 3px solid var(--color-primary); /* 딥 블루 라인 */
+        padding: 15px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      #header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .logo a {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--color-primary);
+      }
+
+      .gnb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 30rem;
+
+        margin: 10px;
+      }
+
+      /* 검색창 */
+      .gnb .search-box {
+        display: flex;
+        /* 검색 버튼을 입력창에 딱 붙이기 위해 테두리를 바깥으로 뺍니다. */
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-right: 0;
+        width: 360px; /* 검색창 너비 조정 */
+      }
+
+      .gnb .search-box input {
+        /* 인풋 필드가 남은 공간을 모두 차지하도록 */
+        flex-grow: 1;
+        border: none;
+        padding: 8px 15px;
+        outline: none;
+      }
+
+      .gnb .search-box .search-btn {
+        /* 버튼이 인풋과 같은 높이를 가지도록 */
+        padding: 8px 15px; /* 높이를 input과 맞추기 위해 조정 */
+        background-color: var(--color-primary);
+        color: white;
+        transition: background-color 0.2s ease;
+        /* 버튼의 둥근 모서리가 사라지도록 */
+        border-radius: 0;
+        white-space: nowrap; /* "검색" 텍스트가 줄바꿈되지 않도록 */
+      }
+
+      .gnb .search-box .search-btn:hover {
+        background-color: #0056b3; /* 더 진한 블루 */
+      }
+
+      /* GNB 메뉴 */
+      .gnb ul {
+        display: flex;
+        list-style: none;
+        margin: 10px 10px;
+        gap: 20px;
+      }
+
+      .gnb ul li a {
+        font-weight: 500;
+        color: var(--color-text-dark);
+      }
+
+      /* 헤더 유저 메뉴 */
+      .user-menu .login-btn-top {
+        border: 2px solid var(--color-accent); /* 코랄 테두리 */
+        color: var(--color-accent);
+        background-color: white;
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+      }
+
+      .user-menu {
+        display: flex; /* 장바구니와 로그인 버튼을 가로로 정렬 */
+        align-items: center;
+        gap: 15px; /* 버튼과 아이콘 사이 간격 */
+      }
+
+      /* 장바구니 아이콘 스타일 추가 */
+      .user-menu .cart-link {
+        color: black;
+        font-size: 16px;
+        font-weight: 700;
+        /* 유니코드나 아이콘 폰트 사용 시 패딩으로 크기 조정 */
+        padding: 5px;
+      }
+
+      .user-menu .login-btn-top:hover {
+        background-color: var(--color-accent);
+        color: white;
+      }
+
+      .writing {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      .container2 {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+
+      .logo {
+        /* 로고 컨테이너를 Flexbox로 설정 */
+        display: flex;
+        align-items: center; /* 수직 중앙 정렬 */
+        gap: 10px; /* 이미지와 텍스트 사이 간격 */
+        margin: 0; /* 불필요한 마진 제거 */
+      }
+
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080;
+        margin-top: 5px;
+      }
+
+      .container2 nav {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 25px;
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 5px;
+      }
+
+      .container2 nav button {
+        background: none;
+        padding: 10px 15px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--color-text-light);
+        border-bottom: 3px solid transparent; /* 기본 밑줄 없음 */
+        transition: color 0.2s, border-bottom 0.2s;
+      }
+
+      .container2 nav button.active {
+        color: var(--color-primary);
+        font-weight: 700;
+        border-bottom: 3px solid var(--color-primary); /* 활성화 탭 표시 */
+      }
+
+      /* ------------------------------------- */
+      /* 3. 메인 콘텐츠 (로그인 영역) */
+      /* ------------------------------------- */
+
+      #container {
+        flex-grow: 1; /* body 높이 100vh 중 헤더/푸터를 뺀 나머지 영역 차지 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 60px 0;
+        background-color: #ffffff;
+      }
+
+      .container2 {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+
+      .login-area {
+        width: 100%;
+        max-width: 420px;
+        background-color: #ffffff;
+        padding: 50px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--color-border-light);
+      }
+
+      /* 탭 메뉴 */
+      .tab-menu {
+        display: flex;
+        border-bottom: 2px solid var(--color-border-light);
+        margin-bottom: 30px;
+      }
+
+      .tab-btn {
+        flex: 1; /* 탭 버튼이 공간을 균등하게 차지 */
+        text-align: center;
+        padding: 12px 0;
+        font-size: 16px;
+        color: var(--color-text-light);
+        background: none;
+        position: relative; /* ::after 가상요소의 기준점 */
+      }
+
+      .tab-btn.active {
+        color: var(--color-primary);
+        font-weight: 700;
+      }
+
+      /* 탭 활성화 시 하단 라인 */
+      .tab-btn.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px; /* 탭 메뉴의 border-bottom 위에 위치 */
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background-color: var(--color-primary);
+      }
+
+      /* 폼 입력 필드 */
+      .login-form .input-group {
+        margin-bottom: 20px;
+        /* 라벨과 인풋을 세로로 배치 */
+        display: flex;
+        flex-direction: column;
+      }
+
+      .login-form label {
+        font-size: 14px;
+        color: var(--color-text-light);
+        margin-bottom: 8px;
+      }
+
+      .login-form input[type="text"],
+      .login-form input[type="password"] {
+        width: 100%;
+        padding: 14px 15px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px; /* CSS 변수에 4로 되어있어 4px로 수정 */
+        font-size: 15px;
+        transition: border-color 0.2s ease;
+      }
+
+      .login-form input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+      }
+
+      /* 메인 로그인 버튼 */
+      .login-btn {
+        width: 100%;
+        padding: 15px;
+        background-color: var(--color-primary); /* 파란색으로 변경 */
+        color: white;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 4px;
+        margin-top: 10px;
+        transition: background-color 0.2s ease;
+      }
+
+      .login-btn:hover {
+        background-color: #0056b3; /* 더 진한 파란색 */
+      }
+
+      /* SNS 로그인 */
+      .sns-login {
+        margin-top: 30px;
+        text-align: center;
+      }
+      .sns-login .divider {
+        color: var(--color-text-light);
+        font-size: 13px;
+        margin-bottom: 15px;
+      }
+
+      /* 회원가입 버튼 */
+      .login2-btn {
+        width: 100%;
+        padding: 15px;
+        background-color: skyblue;
+        color: white;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 4px;
+        margin-top: 10px;
+        transition: background-color 0.2s ease;
+      }
+
+      .login2-btn:hover {
+        background-color: #0056b3; /* 더 진한 파란색 */
+      }
+
+      .sns-btn {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 15px;
+        font-weight: 500;
+        background-color: #fee500; /* 카카오 예시 */
+        color: #191919;
+      }
+
+      .sns-btn.payco {
+        background-color: #e60000; /* PAYCO 예시 */
+        color: white;
+        border: none;
+      }
+
+      /* ------------------------------------- */
+      /* 4. 푸터 스타일링 */
+      /* ------------------------------------- */
+      #footer {
+        background-color: var(--color-dark-footer);
+        color: #a0a0a0; /* 어두운 배경에 밝은 텍스트 */
+        padding: 40px 0;
+        font-size: 13px;
+      }
+
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .footer-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .footer-info .copyright,
+      .footer-info .customer-center {
+        flex: 1;
+        line-height: 1.8;
+      }
+
+      .footer-info .copyright strong {
+        color: #c0c0c0;
+      }
+      /* ==== 공통 우측 사용자 메뉴 (텍스트 2 + 노란 pill 1) ==== */
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+      }
+
+      /* 기본 텍스트 링크(마이페이지/장바구니) */
+      .user-menu .user-link {
+        display: inline-block;
+        font-weight: 700;
+        color: #333;
+        text-decoration: none;
+        padding: 6px 8px;
+      }
+      .user-menu .user-link:hover {
+        color: var(--color-primary);
+      }
+
+      /* 로그인만 노란 pill 버튼 */
+      .user-menu .user-link.pill {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+      }
+      .user-menu .user-link.pill:hover {
+        background: var(--color-accent);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header">
+      <div class="container">
+        <h2 class="logo">
+          <img src="../img/high-five.png" alt="logo" width="100" height="100" />
+          <div class="brand">HIGH-FIVE-BOOKS</div>
+        </h2>
+
+        <nav class="gnb">
+          <div class="search-box">
+            <input type="text" placeholder="검색어를 입력하세요" /><br />
+            <button class="search-btn">검색</button>
+          </div>
+
+          <ul class="writing">
+            <li><a href="../../../../../../nhnacademy_5/member">추천도서</a></li>
+            <li><a href="../../../../../../nhnacademy_5/member">국내 도서</a></li>
+            <li><a href="">베스트 셀러</a></li>
+          </ul>
+        </nav>
+
+        <div class="user-menu">
+          <a href="#" class="cart-link" title="마이페이지">마이페이지 </a>
+          <a href="#" class="cart-link" title="장바구니로 이동"> 장바구니 </a>
+          <button type="button" class="login-btn-top">로그인</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="container">
+      <div class="login-area">
+        <div class="tab-menu">
+          <button type="button" class="tab-btn active">회원 로그인</button>
+          <button type="button" class="tab-btn">비회원 로그인</button>
+        </div>
+
+        <form class="login-form">
+          <div class="input-group">
+            <label for="loginId">아이디</label>
+            <input type="text" id="loginId" placeholder="아이디를 입력하세요" />
+          </div>
+          <div class="input-group">
+            <label for="loginPw">비밀번호</label>
+            <input
+              type="password"
+              id="loginPw"
+              placeholder="비밀번호를 입력하세요"
+            />
+          </div>
+
+          <button type="submit" class="login-btn">로그인</button>
+          <button type="submit" class="login2-btn">회원가입</button>
+        </form>
+
+        <div class="sns-login">
+          <div class="divider">SNS 계정으로 로그인</div>
+          <button type="button" class="sns-btn payco">PAYCO 로그인</button>
+        </div>
+      </div>
+    </main>
+
+    <footer id="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#"><strong>개인정보처리방침</strong></a>
+          <a href="#">관리자</a>
+        </div>
+
+        <div class="footer-info">
+          <div class="copyright">
+            <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+            통신판매업신고 2024-광주동구-01211 | 이메일: marco@nhn.com<br />
+            호스팅 제공자 NHN24 © NHN24. All Rights Reserved.
+          </div>
+          <div class="customer-center">
+            <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+            광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+            Fax 062-1234-5678
+          </div>
+        </div>
+      </div>
+    </footer>
+  </body>
+
+  <script>
+    const signupButton = document.querySelector(".login2-btn");
+
+    // 2. 버튼이 존재하면 클릭 이벤트를 연결합니다.
+    if (signupButton) {
+      signupButton.addEventListener("click", function (event) {
+        // 기본 폼 제출 동작을 막고 페이지 이동만 수행
+        event.preventDefault();
+
+        // 회원가입 페이지 경로로 이동
+        window.location.href = "signup.html";
+      });
+    }
+
+    const loginBtnTop = document.querySelector(".login-btn-top");
+
+    // 2. 버튼이 존재하면 클릭 이벤트를 연결합니다.
+    if (loginBtnTop) {
+      loginBtnTop.addEventListener("click", function (event) {
+        event.preventDefault();
+
+        // 회원가입 페이지 경로로 이동
+        window.location.href = "/login.html";
+      });
+    }
+
+    const mypageLinkInHeader = document.querySelector('a[title="마이페이지"]');
+
+    if (mypageLinkInHeader) {
+      mypageLinkInHeader.addEventListener("click", function (event) {
+        event.preventDefault();
+        window.location.href = "../order/mypage.html";
+      });
+    }
+  </script>
+</html>
