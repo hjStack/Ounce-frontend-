@@ -26,6 +26,7 @@ COPY --from=builder /app/.next/static ./.next/static
 
 EXPOSE 3000
 ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"  # 👈 이 줄을 꼭 추가해 주세요!
 
 # Next.js 내장 서버 대신 standalone으로 생성된 가벼운 Node.js 서버 실행
 CMD ["node", "server.js"]
