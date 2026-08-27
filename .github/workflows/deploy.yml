@@ -37,7 +37,7 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           # 백엔드와 파일 이름이 다릅니다!
-          source: "docker-compose.frontend.yml,deploy-frontend.sh"
+          source: "docker-compose.frontend.yml,deploy-frontend.sh,.env"
           target: /home/${{ secrets.SERVER_USERNAME }}/ounce-frontend
 
       - name: 🌐 운영 서버 접속 및 무중단 배포 실행
@@ -46,6 +46,8 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+
+          
           command_timeout: 20m
           script: |
             set -e
