@@ -2,22 +2,19 @@ version: '3.8'
 
 services:
   frontend-blue:
-    # 도커 허브 유저명은 본인의 것으로 변경하거나, GitHub Actions에서 환경변수로 주입받을 수 있습니다.
-    image: hyejun02/ounce-frontend:latest # 👈 본인 도커 허브 아이디로 변경!
+    image: hyejun02/ounce-frontend:latest
     container_name: frontend-blue
     ports:
       - "3000:3000"
-    restart: always
     env_file:
       - .env
-     restart: always
+    restart: always
 
   frontend-green:
-    image: hyejun02/ounce-frontend:latest # 👈 본인 도커 허브 아이디로 변경!
+    image: hyejun02/ounce-frontend:latest
     container_name: frontend-green
     ports:
-      - "3001:3000" # 외부로는 3001번, 내부(Next.js)는 3000번
-    restart: always
+      - "3001:3000"
     env_file:
       - .env
     restart: always
