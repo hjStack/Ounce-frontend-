@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
+import { useAuth } from "../../components/AuthContext";
 import { useToast } from "../../components/ToastContext";
 import { formatDate } from "../../lib/date";
 import type { PageResponse, Qna } from "../../types/api";
@@ -40,6 +41,7 @@ type Tab = "faq" | "inquiry";
 
 export default function SupportClient() {
     const router = useRouter();
+    const { loading: authLoading, isAuthenticated } = useAuth();
     const { toast, confirm } = useToast();
     const [tab, setTab] = useState<Tab>("faq");
     const [faqCategory, setFaqCategory] = useState("all");
@@ -48,6 +50,7 @@ export default function SupportClient() {
     const [qnas, setQnas] = useState<Qna[]>([]);
     const [qnaPage, setQnaPage] = useState(0);
     const [qnaLast, setQnaLast] = useState(true);
+    const [qnaLoaded, setQnaLoaded] = useState(false);
     const [qnaLoading, setQnaLoading] = useState(false);
     const [openQna, setOpenQna] = useState<number | null>(null);
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -64,11 +67,13 @@ export default function SupportClient() {
         });
     }, [faqCategory, faqKeyword]);
 
-    const loadQnas = async (page = 0) => {
+    const loadQnas = useCallback(async (page = 0) => {
         setQnaLoading(true);
         try {
             const res = await fetch(`/api/qna/me?page=${page}&size=${PAGE_SIZE}`, { credentials: "include" });
             if (res.status === 401) {
+                setQnas([]);
+                setQnaLoaded(true);
                 toast("로그인이 필요한 서비스입니다.", "error");
                 router.push("/login");
                 return;
@@ -79,20 +84,34 @@ export default function SupportClient() {
             setQnas((current) => (page === 0 ? nextItems : [...current, ...nextItems]));
             setQnaPage(page);
             setQnaLast(data.last ?? (data.hasNext == null ? true : !data.hasNext));
+            setQnaLoaded(true);
         } catch {
+            setQnaLoaded(true);
             toast("문의 내역을 불러오지 못했습니다.", "error");
         } finally {
             setQnaLoading(false);
         }
-    };
+    }, [router, toast]);
 
     useEffect(() => {
-        if (tab === "inquiry" && qnas.length === 0 && !qnaLoading) {
-            void loadQnas(0);
+        if (tab !== "inquiry") return;
+        if (authLoading) return;
+
+        if (!isAuthenticated) {
+            setQnas([]);
+            setQnaPage(0);
+            setQnaLast(true);
+            setQnaLoaded(false);
+            setOpenQna(null);
+            setEditingId(null);
+            setCategory(QNA_CATEGORIES[0].label);
+            setTitle("");
+            setContent("");
+            return;
         }
-        // 문의 탭을 처음 열 때만 로드한다.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tab]);
+
+        if (!qnaLoaded && !qnaLoading) void loadQnas(0);
+    }, [authLoading, isAuthenticated, loadQnas, qnaLoaded, qnaLoading, tab]);
 
     const resetForm = () => {
         setEditingId(null);
@@ -103,6 +122,10 @@ export default function SupportClient() {
 
     const submitQna = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        if (!isAuthenticated) {
+            toast("로그인 후 문의를 등록할 수 있습니다.", "error");
+            return;
+        }
         if (!title.trim()) {
             toast("문의 제목을 입력해주세요.", "error");
             return;
@@ -122,6 +145,7 @@ export default function SupportClient() {
                 body: JSON.stringify({ title: title.trim(), content: content.trim(), category }),
             });
             if (res.status === 401) {
+                toast("로그인이 필요한 서비스입니다.", "error");
                 router.push("/login");
                 return;
             }
@@ -154,6 +178,11 @@ export default function SupportClient() {
         if (!ok) return;
         try {
             const res = await fetch(`/api/qna/${item.qnaId}`, { method: "DELETE", credentials: "include" });
+            if (res.status === 401) {
+                toast("로그인이 필요한 서비스입니다.", "error");
+                router.push("/login");
+                return;
+            }
             if (!res.ok && res.status !== 204) {
                 toast("답변 완료 문의는 삭제할 수 없습니다.", "error");
                 return;
@@ -176,12 +205,12 @@ export default function SupportClient() {
                             <span className="text-xs font-bold text-primary-500">SUPPORT</span>
                         </div>
                         <h1 className="text-2xl font-bold text-foreground-950 md:text-3xl">고객센터</h1>
-                        <p className="mt-1.5 text-sm text-foreground-500">자주 묻는 질문을 확인하고 1:1 문의를 남길 수 있습니다.</p>
+                        <p className="mt-1.5 text-sm text-foreground-500">자주 묻는 질문을 확인하고 로그인 후 나의 문의를 관리할 수 있습니다.</p>
                     </div>
 
                     <div className="mb-6 grid rounded-xl bg-background-100 p-1 sm:grid-cols-2">
                         <TabButton active={tab === "faq"} icon="ri-question-line" label="자주 묻는 질문" onClick={() => setTab("faq")} />
-                        <TabButton active={tab === "inquiry"} icon="ri-chat-3-line" label="1:1 문의" onClick={() => setTab("inquiry")} />
+                        <TabButton active={tab === "inquiry"} icon="ri-chat-3-line" label="나의 문의" onClick={() => setTab("inquiry")} />
                     </div>
 
                     {tab === "faq" && (
@@ -242,7 +271,11 @@ export default function SupportClient() {
                         </section>
                     )}
 
-                    {tab === "inquiry" && (
+                    {tab === "inquiry" && authLoading && <AuthNotice loading />}
+
+                    {tab === "inquiry" && !authLoading && !isAuthenticated && <AuthNotice />}
+
+                    {tab === "inquiry" && !authLoading && isAuthenticated && (
                         <section className="grid gap-6 lg:grid-cols-[360px_1fr]">
                             <form className="h-fit rounded-xl border border-background-200 bg-white p-5" onSubmit={submitQna}>
                                 <div className="mb-4 flex items-center justify-between">
@@ -351,6 +384,35 @@ export default function SupportClient() {
             </main>
             <Footer />
         </div>
+    );
+}
+
+function AuthNotice({ loading = false }: { loading?: boolean }) {
+    if (loading) {
+        return (
+            <section className="rounded-xl border border-background-200 bg-white px-5 py-16 text-center">
+                <i className="ri-loader-4-line mb-3 block text-3xl text-primary-500" />
+                <p className="text-sm font-semibold text-foreground-700">로그인 상태를 확인하는 중입니다.</p>
+            </section>
+        );
+    }
+
+    return (
+        <section className="rounded-xl border border-background-200 bg-white px-5 py-16 text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+                <i className="ri-lock-2-line text-2xl" />
+            </div>
+            <h2 className="text-lg font-bold text-foreground-950">로그인 후 확인할 수 있습니다</h2>
+            <p className="mt-2 text-sm text-foreground-500">나의 문의 내역과 답변은 계정에 연결되어 있습니다.</p>
+            <div className="mt-6 flex flex-col justify-center gap-2 sm:flex-row">
+                <Link href="/login" className="rounded-lg bg-primary-500 px-5 py-3 text-sm font-bold text-white hover:bg-primary-600">
+                    로그인하기
+                </Link>
+                <Link href="/signup" className="rounded-lg border border-background-200 bg-white px-5 py-3 text-sm font-bold text-foreground-700 hover:bg-background-100">
+                    회원가입
+                </Link>
+            </div>
+        </section>
     );
 }
 

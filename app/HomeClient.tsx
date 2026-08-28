@@ -12,7 +12,6 @@ const pad = (value: number) => String(value).padStart(2, "0");
 export default function HomeClient() {
     const [countdown, setCountdown] = useState("--:--:--");
     const [menuCount, setMenuCount] = useState("–");
-    const [memberCount, setMemberCount] = useState<number | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -34,13 +33,6 @@ export default function HomeClient() {
         fetchCategoryCounts()
             .then((data) => {
                 if (data.all !== undefined) setMenuCount(String(data.all));
-            })
-            .catch(() => undefined);
-
-        fetch("/api/members/count")
-            .then((res) => (res.ok ? res.json() : null))
-            .then((count: number | null) => {
-                if (count && count > 0) setMemberCount(count);
             })
             .catch(() => undefined);
     }, []);
@@ -89,9 +81,6 @@ export default function HomeClient() {
                             <Stat value={menuCount} suffix="종" label="밀키트 메뉴" />
                             <Stat value="10분" label="조리 시간" divided />
                             <Stat value="7시" label="새벽 배송" divided />
-                            {memberCount !== null && (
-                                <Stat value={memberCount.toLocaleString("ko-KR")} suffix="명" label="Ounce 멤버" divided />
-                            )}
                         </div>
                     </div>
 

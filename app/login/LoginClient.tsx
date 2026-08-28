@@ -25,7 +25,6 @@ export default function LoginClient() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [loginError, setLoginError] = useState("");
 
     useEffect(() => {
         if (searchParams.get("welcome") === "true") {
@@ -49,27 +48,31 @@ export default function LoginClient() {
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!email.trim()) {
+        const trimmedEmail = email.trim();
+
+        if (!trimmedEmail) {
             const message = "이메일을 입력해주세요.";
-            setLoginError(message);
+            toast(message, "error");
+            return;
+        }
+        if (!trimmedEmail.includes("@")) {
+            const message = "이메일에 @를 포함해주세요.";
             toast(message, "error");
             return;
         }
         if (!password) {
             const message = "비밀번호를 입력해주세요.";
-            setLoginError(message);
             toast(message, "error");
             return;
         }
 
-        setLoginError("");
         setSubmitting(true);
         try {
             const response = await fetch("/api/members/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email: trimmedEmail, password }),
             });
             const contentType = response.headers.get("content-type") ?? "";
             const isLoginSuccess = response.ok && !response.redirected && !contentType.includes("text/html");
@@ -81,12 +84,10 @@ export default function LoginClient() {
             } else {
                 const rawMessage = await response.text().catch(() => "");
                 const message = normalizeLoginError(rawMessage);
-                setLoginError(message);
                 toast(message, "error");
             }
         } catch {
             const message = "서버와 통신 중 문제가 발생했습니다.";
-            setLoginError(message);
             toast(message, "error");
         } finally {
             setSubmitting(false);
@@ -110,7 +111,7 @@ export default function LoginClient() {
                             <p className="mt-1 text-sm text-foreground-500">Ounce에 오신 것을 환영합니다</p>
                         </div>
 
-                        <form className="flex flex-col gap-5" onSubmit={submit}>
+                        <form className="flex flex-col gap-5" onSubmit={submit} noValidate>
                             <div>
                                 <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground-700">
                                     이메일
@@ -119,13 +120,8 @@ export default function LoginClient() {
                                     id="email"
                                     type="email"
                                     value={email}
-                                    onChange={(event) => {
-                                        setEmail(event.target.value);
-                                        if (loginError) setLoginError("");
-                                    }}
+                                    onChange={(event) => setEmail(event.target.value)}
                                     placeholder="이메일을 입력하세요"
-                                    aria-invalid={Boolean(loginError)}
-                                    aria-describedby={loginError ? "login-error" : undefined}
                                     className="w-full rounded-lg border border-background-200 bg-background-50 px-4 py-3 text-foreground-900 outline-none transition-colors placeholder:text-foreground-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                                 />
                             </div>
@@ -139,13 +135,8 @@ export default function LoginClient() {
                                         id="password"
                                         type={showPassword ? "text" : "password"}
                                         value={password}
-                                        onChange={(event) => {
-                                            setPassword(event.target.value);
-                                            if (loginError) setLoginError("");
-                                        }}
+                                        onChange={(event) => setPassword(event.target.value)}
                                         placeholder="비밀번호를 입력하세요"
-                                        aria-invalid={Boolean(loginError)}
-                                        aria-describedby={loginError ? "login-error" : undefined}
                                         className="w-full rounded-lg border border-background-200 bg-background-50 px-4 py-3 pr-12 text-foreground-900 outline-none transition-colors placeholder:text-foreground-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
                                     />
                                     <button
@@ -158,12 +149,6 @@ export default function LoginClient() {
                                     </button>
                                 </div>
                             </div>
-
-                            {loginError && (
-                                <p id="login-error" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-600" role="alert">
-                                    {loginError}
-                                </p>
-                            )}
 
                             <button
                                 type="submit"

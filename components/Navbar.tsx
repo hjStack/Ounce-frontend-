@@ -32,6 +32,7 @@ export default function Navbar() {
     const { count: cartCount } = useCart();
     const displayName = user?.email ? user.email.split("@")[0] : "사용자";
     const hidden = pathname.startsWith("/admin") || pathname === "/login" || pathname === "/signup";
+    const isTimeDeal = pathname === "/timedeal";
 
     const [mobileOpen, setMobileOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -97,19 +98,30 @@ export default function Navbar() {
         router.refresh();
     };
 
-    const linkClass = (href: string) =>
-        currentPath === href ? DESKTOP_LINK_ACTIVE : DESKTOP_LINK;
+    const linkClass = (href: string) => {
+        const active = currentPath === href;
+        if (isTimeDeal) {
+            return active
+                ? "timedeal-nav-text text-sm font-bold text-white transition-colors whitespace-nowrap"
+                : "timedeal-nav-text text-sm font-medium text-white/70 hover:text-white transition-colors whitespace-nowrap";
+        }
+        return active ? DESKTOP_LINK_ACTIVE : DESKTOP_LINK;
+    };
     const ariaCurrent = (href: string) =>
         currentPath === href ? ("page" as const) : undefined;
 
     if (hidden) return null;
 
     return (
-        <nav className="fixed top-0 left-0 right-0 z-50 bg-background-cream/90 backdrop-blur-md border-b border-background-200/70">
+        <nav
+            className={`fixed top-0 left-0 right-0 z-50 backdrop-blur-md border-b ${
+                isTimeDeal ? "bg-black/95 border-white/10" : "bg-background-cream/90 border-background-200/70"
+            }`}
+        >
             <div className="w-full px-4 md:px-8 lg:px-12">
                 <div className="flex items-center justify-between h-20 md:h-24">
                     <Link href="/" className="flex items-center gap-2 shrink-0">
-            <span className="text-xl md:text-2xl font-semibold font-heading text-foreground-950 tracking-tight">
+            <span className={`text-xl md:text-2xl font-semibold font-heading tracking-tight ${isTimeDeal ? "timedeal-nav-text text-white" : "text-foreground-950"}`}>
               Ounce
             </span>
                     </Link>
@@ -144,8 +156,12 @@ export default function Navbar() {
                             aria-current={ariaCurrent("/timedeal")}
                             className={
                                 currentPath === "/timedeal"
-                                    ? "flex items-center gap-1.5 text-sm font-bold text-foreground-950 transition-colors whitespace-nowrap"
-                                    : "flex items-center gap-1.5 text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors whitespace-nowrap"
+                                    ? `flex items-center gap-1.5 text-sm font-bold transition-colors whitespace-nowrap ${
+                                          isTimeDeal ? "timedeal-nav-text text-white" : "text-foreground-950"
+                                      }`
+                                    : `flex items-center gap-1.5 text-sm font-bold transition-colors whitespace-nowrap ${
+                                          isTimeDeal ? "timedeal-nav-text text-white hover:text-white" : "text-indigo-600 hover:text-indigo-800"
+                                      }`
                             }
                         >
                             <i className="ri-moon-fill text-indigo-500 text-lg" />
@@ -169,11 +185,17 @@ export default function Navbar() {
                                     type="button"
                                     onClick={() => setUserMenuOpen((v) => !v)}
                                     aria-expanded={userMenuOpen}
-                                    className="group flex items-center gap-1.5 text-sm font-medium text-foreground-700 hover:text-foreground-950 transition-colors cursor-pointer"
+                                    className={`group flex items-center gap-1.5 text-sm font-medium transition-colors cursor-pointer ${
+                                        isTimeDeal ? "timedeal-nav-text text-white/85 hover:text-white" : "text-foreground-700 hover:text-foreground-950"
+                                    }`}
                                 >
                                     <span className="whitespace-nowrap">{displayName}</span>
-                                    <span className="text-foreground-500">님</span>
-                                    <i className="ri-arrow-down-s-line text-sm text-foreground-400 group-hover:text-foreground-600 transition-transform duration-200 group-hover:translate-y-0.5" />
+                                    <span className={isTimeDeal ? "timedeal-nav-text text-white/60" : "text-foreground-500"}>님</span>
+                                    <i
+                                        className={`ri-arrow-down-s-line text-sm transition-transform duration-200 group-hover:translate-y-0.5 ${
+                                            isTimeDeal ? "text-white/50 group-hover:text-white/80" : "text-foreground-400 group-hover:text-foreground-600"
+                                        }`}
+                                    />
                                 </button>
 
                                 {userMenuOpen && (
@@ -231,7 +253,9 @@ export default function Navbar() {
                         {!isAuthenticated && (
                             <Link
                                 href="/login"
-                                className="text-sm font-medium text-foreground-600 hover:text-foreground-950 transition-colors whitespace-nowrap tracking-wide"
+                                className={`text-sm font-medium transition-colors whitespace-nowrap tracking-wide ${
+                                    isTimeDeal ? "timedeal-nav-text text-white/80 hover:text-white" : "text-foreground-600 hover:text-foreground-950"
+                                }`}
                             >
                                 로그인
                             </Link>
@@ -240,17 +264,25 @@ export default function Navbar() {
                         <button
                             type="button"
                             onClick={openSearch}
-                            className="text-foreground-700 hover:text-primary-500 transition-colors"
+                            className={`transition-colors ${isTimeDeal ? "timedeal-nav-text text-white/80 hover:text-white" : "text-foreground-700 hover:text-primary-500"}`}
                             aria-label="검색"
                         >
                             <i className="ri-search-line text-xl" />
                         </button>
 
                         {/* group 클래스 추가 — 원본은 빠져 있어서 아이콘 hover 가 안 먹었음 */}
-                        <Link href="/cart" className="group relative" aria-label="장바구니">
+                        <Link
+                            href="/cart"
+                            className={`group relative transition-colors ${isTimeDeal ? "timedeal-nav-text text-white/85 hover:text-white" : ""}`}
+                            aria-label="장바구니"
+                        >
                             <i className="ri-shopping-cart-2-line text-xl inline-block group-hover:scale-110 transition-transform duration-200" />
                             {cartCount > 0 && (
-                                <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#447861] text-white text-[11px] font-bold leading-none tracking-tighter ring-2 ring-white shadow-sm transition-all duration-300">
+                                <span
+                                    className={`absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 flex items-center justify-center rounded-full bg-[#447861] text-white text-[11px] font-bold leading-none tracking-tighter ring-2 shadow-sm transition-all duration-300 ${
+                                        isTimeDeal ? "ring-black" : "ring-white"
+                                    }`}
+                                >
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
                             )}
@@ -264,7 +296,7 @@ export default function Navbar() {
                         aria-label="메뉴"
                         className="md:hidden w-10 h-10 flex items-center justify-center"
                     >
-                        <i className="ri-menu-line text-2xl text-foreground-950" />
+                        <i className={`ri-menu-line text-2xl ${isTimeDeal ? "text-white" : "text-foreground-950"}`} />
                     </button>
                 </div>
             </div>

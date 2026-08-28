@@ -32,26 +32,27 @@ export default function SignupClient() {
 
         if (!name.trim()) {
             setErrors({ name: "이름을 입력해주세요." });
-            toast("이름을 입력해주세요.");
+            toast("이름을 입력해주세요.", "error");
             return;
         }
         if (!email.trim()) {
             setErrors({ email: "이메일을 입력해주세요." });
-            toast("이메일을 입력해주세요.");
+            toast("이메일을 입력해주세요.", "error");
             return;
         }
         if (!password) {
             setErrors({ password: "비밀번호를 입력해주세요." });
-            toast("비밀번호를 입력해주세요.");
+            toast("비밀번호를 입력해주세요.", "error");
             return;
         }
         if (!confirmPassword) {
             setErrors({ confirmPassword: "비밀번호 확인을 입력해주세요." });
-            toast("비밀번호 확인을 입력해주세요.");
+            toast("비밀번호 확인을 입력해주세요.", "error");
             return;
         }
         if (password !== confirmPassword) {
             setErrors({ confirmPassword: "비밀번호가 일치하지 않습니다." });
+            toast("비밀번호가 일치하지 않습니다.", "error");
             return;
         }
 
@@ -70,7 +71,7 @@ export default function SignupClient() {
                 const message = data?.message || "회원가입에 실패했습니다.";
                 if (message.includes("비밀번호")) setErrors({ password: message });
                 else if (message.includes("이메일")) setErrors({ email: message });
-                else toast(message, "error");
+                toast(message, "error");
             } else {
                 toast("회원가입에 실패했습니다.", "error");
             }
@@ -212,7 +213,6 @@ function Field({
                     error ? "error-input border-red-500" : "border-background-200"
                 }`}
             />
-            <div className="field-error mt-1 text-xs text-red-500">{error}</div>
         </div>
     );
 }
@@ -261,7 +261,6 @@ function PasswordField({
                     <i className={`${show ? "ri-eye-off-line" : "ri-eye-line"} text-lg`} />
                 </button>
             </div>
-            <div className="field-error mt-1 text-xs text-red-500">{error}</div>
         </div>
     );
 }

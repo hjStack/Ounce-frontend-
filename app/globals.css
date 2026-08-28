@@ -85,6 +85,10 @@ a {
   text-decoration: none;
 }
 
+.timedeal-nav-text {
+  color: #ffffff !important;
+}
+
 button {
   cursor: pointer;
 }
