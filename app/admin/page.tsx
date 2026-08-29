@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { requireAdminOrNotFound } from "../../lib/server-auth";
 import AdminShell from "./AdminShell";
 
 const STATS = [
@@ -20,9 +21,26 @@ const STAT_COLOR_CLASSES: Record<string, string> = {
     red: "bg-red-50 text-red-600",
 };
 
-export default function AdminPage() {
+export default async function AdminPage() {
+    await requireAdminOrNotFound();
+
     return (
         <AdminShell active="/admin" title="대시보드">
+            <section className="mb-6 flex flex-col gap-4 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-wide text-primary-600">Product Admin</p>
+                    <h2 className="mt-1 text-xl font-bold text-gray-900">상품을 등록하고 관리하세요</h2>
+                    <p className="mt-1 text-sm text-gray-500">새 밀키트 상품을 추가하거나 기존 상품을 삭제할 수 있습니다.</p>
+                </div>
+                <Link
+                    href="/admin/products"
+                    className="inline-flex w-fit items-center justify-center gap-2 rounded-lg bg-primary-500 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600"
+                >
+                    <i className="ri-add-circle-line text-base" />
+                    상품 등록
+                </Link>
+            </section>
+
             <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
                 {STATS.map((item) => (
                     <div key={item.label} className="rounded-xl border border-gray-100 bg-white p-6 shadow-sm">

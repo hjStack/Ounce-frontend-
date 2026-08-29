@@ -1,11 +1,15 @@
+export type RoleClaim = string | { authority?: string; role?: string; name?: string };
+
 export interface Member {
     memberId?: number;
     email: string;
     name?: string;
     point?: number;
     grade?: string;
-    authorities?: string[];
-    roles?: string[];
+    role?: string;
+    authority?: string;
+    authorities?: RoleClaim[];
+    roles?: RoleClaim[];
 }
 
 export interface CartItem {

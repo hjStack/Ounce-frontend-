@@ -43,6 +43,9 @@ export default function Navbar() {
     const [keyword, setKeyword] = useState("");
     const searchInputRef = useRef<HTMLInputElement>(null);
     const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const showAuthenticated = isAuthenticated;
+    const showAdmin = isAdmin;
+    const showGuest = !isAuthenticated;
 
     // 라우트가 바뀌면 열려 있던 메뉴/오버레이를 모두 닫는다
     useEffect(() => {
@@ -170,16 +173,16 @@ export default function Navbar() {
                     </div>
 
                     <div className="flex items-center gap-3 md:gap-4">
-                        {isAdmin && (
+                        {showAdmin && (
                             <Link
                                 href="/admin"
-                                className="hidden md:flex items-center gap-1.5 px-2.5 py-1 bg-gray-900 text-white text-[11px] font-bold rounded-full hover:bg-gray-700 transition-colors shadow-sm"
+                                className="hidden md:flex items-center gap-1.5 rounded-full bg-deal-500 px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-deal-500/25 transition-colors hover:bg-deal-600"
                             >
                                 <i className="ri-dashboard-3-line text-sm" /> 관리자
                             </Link>
                         )}
 
-                        {isAuthenticated && (
+                        {showAuthenticated && (
                             <div className="relative" ref={userMenuWrapRef}>
                                 <button
                                     type="button"
@@ -225,7 +228,7 @@ export default function Navbar() {
                                             <i className="ri-customer-service-2-line text-foreground-400 text-base" /> 고객센터
                                         </Link>
 
-                                        {isAdmin && (
+                                        {showAdmin && (
                                             <Link
                                                 href="/admin/qna"
                                                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground-700 hover:bg-background-100 transition-colors"
@@ -250,7 +253,7 @@ export default function Navbar() {
                             </div>
                         )}
 
-                        {!isAuthenticated && (
+                        {showGuest && (
                             <Link
                                 href="/login"
                                 className={`text-sm font-medium transition-colors whitespace-nowrap tracking-wide ${
@@ -306,15 +309,15 @@ export default function Navbar() {
                 <div className="md:hidden bg-background-50/98 backdrop-blur-md border-t border-background-200 shadow-lg">
                     <div className="px-4 py-5">
                         <Link
-                            href={isAuthenticated ? "/subscription" : "/subscribe"}
+                            href={showAuthenticated ? "/subscription" : "/subscribe"}
                             className="flex items-center justify-between gap-3 px-4 py-3.5 mb-5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
                         >
               <span className="flex items-center gap-2.5 text-sm font-semibold">
                 <i className="ri-calendar-check-line text-lg" />
-                  {isAuthenticated ? "내 구독" : "구독 시작"}
+                  {showAuthenticated ? "내 구독" : "구독 시작"}
               </span>
                             <span className="text-[11px] text-white/70">
-                {isAuthenticated ? "이번 주 메뉴 바꾸기" : "한 주 저녁 미리 정하기"}
+                {showAuthenticated ? "이번 주 메뉴 바꾸기" : "한 주 저녁 미리 정하기"}
               </span>
                         </Link>
 
@@ -351,7 +354,7 @@ export default function Navbar() {
                             내 계정
                         </p>
                         <div className="flex flex-col gap-0.5">
-                            {!isAuthenticated && (
+                            {showGuest && (
                                 <Link
                                     href="/login"
                                     className="flex items-center gap-3 px-3 py-3 text-sm font-medium text-foreground-700 hover:bg-background-100 rounded-xl transition-colors"
@@ -360,7 +363,7 @@ export default function Navbar() {
                                 </Link>
                             )}
 
-                            {isAuthenticated && (
+                            {showAuthenticated && (
                                 <>
                                     <Link
                                         href="/account"
@@ -384,7 +387,7 @@ export default function Navbar() {
                                 <i className="ri-customer-service-2-line text-foreground-400 text-base" /> 고객센터
                             </Link>
 
-                            {isAdmin && (
+                            {showAdmin && (
                                 <Link
                                     href="/admin"
                                     className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-gray-800 hover:bg-gray-100 transition-colors bg-gray-50"
@@ -396,7 +399,7 @@ export default function Navbar() {
                                 </Link>
                             )}
 
-                            {isAuthenticated && (
+                            {showAuthenticated && (
                                 <button
                                     type="button"
                                     onClick={handleLogout}

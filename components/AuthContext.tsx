@@ -9,6 +9,7 @@ import {
     useState,
     type ReactNode,
 } from "react";
+import { hasAdminAccess } from "../lib/admin";
 import type { Member } from "../types/api";
 
 interface AuthContextValue {
@@ -61,10 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             user,
             loading,
             isAuthenticated: user !== null,
-            isAdmin:
-                user?.authorities?.some((role) => role === "ADMIN" || role === "ROLE_ADMIN") ??
-                user?.roles?.some((role) => role === "ADMIN" || role === "ROLE_ADMIN") ??
-                false,
+            isAdmin: hasAdminAccess(user),
             refresh,
             logout,
         }),
