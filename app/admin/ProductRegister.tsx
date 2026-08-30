@@ -28,6 +28,12 @@ const CHANGE_ACTIONS = [
     { label: "상태 변경", icon: "ri-toggle-line" },
 ];
 
+const MAX_UPLOAD_IMAGE_BYTES = 900 * 1024;
+const MAX_ORIGINAL_IMAGE_BYTES = 10 * 1024 * 1024;
+const MAX_IMAGE_DIMENSION = 1200;
+const IMAGE_QUALITY_STEPS = [0.82, 0.72, 0.62, 0.52];
+const IMAGE_OUTPUT_TYPE = "image/webp";
+
 function parseCategoryIds(value: string) {
     return Array.from(
         new Set(
@@ -44,6 +50,9 @@ export default function ProductRegister() {
     const { toast, confirm } = useToast();
     const [form, setForm] = useState(INITIAL_FORM);
     const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+    const [imageNotice, setImageNotice] = useState("");
+    const [imageProcessing, setImageProcessing] = useState(false);
     const [categories, setCategories] = useState<CategoryOption[]>([]);
     const [categoryLoading, setCategoryLoading] = useState(true);
     const [products, setProducts] = useState<Product[]>([]);
@@ -81,6 +90,18 @@ export default function ProductRegister() {
         void loadProducts();
     }, [loadProducts]);
 
+    useEffect(() => {
+        if (!imageFile) {
+            setImagePreviewUrl("");
+            return;
+        }
+
+        const previewUrl = URL.createObjectURL(imageFile);
+        setImagePreviewUrl(previewUrl);
+
+        return () => URL.revokeObjectURL(previewUrl);
+    }, [imageFile]);
+
     const selectedCategoryIds = useMemo(() => parseCategoryIds(form.categoryIds), [form.categoryIds]);
 
     const updateField = (field: keyof typeof INITIAL_FORM) => (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -97,12 +118,46 @@ export default function ProductRegister() {
     const reset = () => {
         setForm(INITIAL_FORM);
         setImageFile(null);
+        setImageNotice("");
         setCreatedId(null);
+    };
+
+    const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0] ?? null;
+        event.target.value = "";
+
+        if (!file) {
+            setImageFile(null);
+            setImageNotice("");
+            return;
+        }
+
+        setImageProcessing(true);
+        try {
+            const prepared = await prepareProductImage(file);
+            setImageFile(prepared);
+            setImageNotice(
+                prepared.size < file.size
+                    ? `${readableFileSize(file.size)} 이미지를 ${readableFileSize(prepared.size)}로 줄였습니다.`
+                    : `${prepared.name} · ${readableFileSize(prepared.size)}`,
+            );
+        } catch (error) {
+            setImageFile(null);
+            setImageNotice("");
+            toast(error instanceof Error ? error.message : "이미지를 처리하지 못했습니다.", "error");
+        } finally {
+            setImageProcessing(false);
+        }
     };
 
     const onSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setCreatedId(null);
+
+        if (imageProcessing) {
+            toast("이미지를 처리하는 중입니다. 잠시 후 다시 시도해주세요.", "error");
+            return;
+        }
 
         const name = form.name.trim();
         const basePrice = Number(form.basePrice);
@@ -159,7 +214,8 @@ export default function ProductRegister() {
                 return;
             }
             if (!response.ok) {
-                toast("상품 등록에 실패했습니다.", "error");
+                const message = await readResponseMessage(response);
+                toast(productCreateErrorMessage(response.status, message), "error");
                 return;
             }
 
@@ -350,11 +406,11 @@ export default function ProductRegister() {
                     <div className="mt-6 flex flex-wrap gap-2">
                         <button
                             type="submit"
-                            disabled={submitting}
+                            disabled={submitting || imageProcessing}
                             className="inline-flex items-center gap-2 rounded-lg bg-primary-500 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                             <i className="ri-add-circle-line text-base" />
-                            {submitting ? "등록 중..." : "상품 등록"}
+                            {submitting ? "등록 중..." : imageProcessing ? "이미지 처리 중..." : "상품 등록"}
                         </button>
                         <button
                             type="button"
@@ -368,19 +424,46 @@ export default function ProductRegister() {
 
                 <aside className="rounded-xl border border-gray-100 bg-white p-5 shadow-sm">
                     <h3 className="text-sm font-bold text-gray-900">상품 이미지</h3>
-                    <label className="mt-4 flex aspect-square cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/40">
-                        <i className="ri-image-add-line text-3xl text-gray-400" />
-                        <span className="mt-2 text-sm font-semibold text-gray-700">{imageFile ? imageFile.name : "이미지 선택"}</span>
-                        <span className="mt-1 text-xs text-gray-400">JPG, PNG 등 이미지 파일</span>
+                    <label
+                        htmlFor="product-image-upload"
+                        className="mt-4 flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/40"
+                    >
+                        {imagePreviewUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={imagePreviewUrl} alt="선택한 상품 이미지 미리보기" className="h-full w-full object-cover" />
+                        ) : (
+                            <>
+                                <i className="ri-image-add-line text-3xl text-gray-400" />
+                                <span className="mt-2 text-sm font-semibold text-gray-700">{imageProcessing ? "이미지 처리 중..." : "이미지 선택"}</span>
+                                <span className="mt-1 text-xs text-gray-400">JPG, PNG, WEBP · 최대 10MB</span>
+                            </>
+                        )}
                         <input
+                            id="product-image-upload"
                             type="file"
-                            accept="image/*"
+                            accept="image/jpeg,image/png,image/webp"
                             className="hidden"
-                            onChange={(event) => setImageFile(event.target.files?.[0] ?? null)}
+                            disabled={imageProcessing}
+                            onChange={(event) => void handleImageChange(event)}
                         />
                     </label>
+                    {imageFile && (
+                        <div className="mt-3 flex items-center justify-between gap-3">
+                            <p className="min-w-0 truncate text-xs font-medium text-gray-500">{imageNotice}</p>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setImageFile(null);
+                                    setImageNotice("");
+                                }}
+                                className="shrink-0 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50"
+                            >
+                                제거
+                            </button>
+                        </div>
+                    )}
                     <div className="mt-5 rounded-lg bg-gray-50 p-4 text-xs leading-5 text-gray-500">
-                        이미지를 선택하면 image 파트로 함께 업로드됩니다. 이미지를 넣지 않으면 서버 저장 URL 없이 등록됩니다.
+                        이미지는 업로드 전에 자동으로 압축됩니다. 이미지를 넣지 않으면 서버 저장 URL 없이 등록됩니다.
                     </div>
                 </aside>
             </div>
@@ -490,4 +573,113 @@ function Field({ label, required = false, children }: { label: string; required?
             {children}
         </label>
     );
+}
+
+function readableFileSize(bytes: number) {
+    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
+    return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+}
+
+function productCreateErrorMessage(status: number, message: string) {
+    if (status === 413) return "이미지 용량이 너무 큽니다. 더 작은 이미지를 선택해주세요.";
+    if (message.includes("Maximum upload size") || message.includes("FileSizeLimit")) {
+        return "이미지 업로드 허용 용량을 초과했습니다. 더 작은 이미지를 선택해주세요.";
+    }
+    if (message.includes("S3") || message.includes("이미지 업로드")) {
+        return "이미지 업로드에 실패했습니다. S3 설정과 권한을 확인해주세요.";
+    }
+    return message || "상품 등록에 실패했습니다.";
+}
+
+async function readResponseMessage(response: Response) {
+    try {
+        return await response.text();
+    } catch {
+        return "";
+    }
+}
+
+async function prepareProductImage(file: File) {
+    if (!file.type.startsWith("image/")) {
+        throw new Error("이미지 파일만 등록할 수 있습니다.");
+    }
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+        throw new Error("JPG, PNG, WEBP 이미지만 등록할 수 있습니다.");
+    }
+    if (file.size > MAX_ORIGINAL_IMAGE_BYTES) {
+        throw new Error(`이미지는 ${readableFileSize(MAX_ORIGINAL_IMAGE_BYTES)} 이하만 등록할 수 있습니다.`);
+    }
+    if (file.size <= MAX_UPLOAD_IMAGE_BYTES) {
+        return ensureImageFileExtension(file);
+    }
+
+    return compressProductImage(file);
+}
+
+function ensureImageFileExtension(file: File) {
+    if (/\.(jpe?g|png|webp)$/i.test(file.name)) return file;
+
+    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+    return new File([file], `${file.name || "product-image"}.${extension}`, { type: file.type, lastModified: file.lastModified });
+}
+
+async function compressProductImage(file: File) {
+    const image = await loadImage(file);
+    const ratio = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * ratio));
+    const height = Math.max(1, Math.round(image.naturalHeight * ratio));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("이미지를 처리하지 못했습니다.");
+    context.drawImage(image, 0, 0, width, height);
+
+    for (const quality of IMAGE_QUALITY_STEPS) {
+        const blob = await canvasToBlob(canvas, IMAGE_OUTPUT_TYPE, quality);
+        if (blob.size <= MAX_UPLOAD_IMAGE_BYTES || quality === IMAGE_QUALITY_STEPS[IMAGE_QUALITY_STEPS.length - 1]) {
+            return new File([blob], `${filenameWithoutExtension(file.name) || "product-image"}.webp`, {
+                type: IMAGE_OUTPUT_TYPE,
+                lastModified: Date.now(),
+            });
+        }
+    }
+
+    return ensureImageFileExtension(file);
+}
+
+function loadImage(file: File) {
+    return new Promise<HTMLImageElement>((resolve, reject) => {
+        const image = new Image();
+        const url = URL.createObjectURL(file);
+
+        image.onload = () => {
+            URL.revokeObjectURL(url);
+            resolve(image);
+        };
+        image.onerror = () => {
+            URL.revokeObjectURL(url);
+            reject(new Error("이미지를 읽지 못했습니다. 다른 파일을 선택해주세요."));
+        };
+        image.src = url;
+    });
+}
+
+function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
+    return new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+            (blob) => {
+                if (blob) resolve(blob);
+                else reject(new Error("이미지를 압축하지 못했습니다."));
+            },
+            type,
+            quality,
+        );
+    });
+}
+
+function filenameWithoutExtension(name: string) {
+    return name.replace(/\.[^.]+$/, "");
 }
