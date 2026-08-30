@@ -23,6 +23,30 @@ export interface CartItem {
     quantity: number;
 }
 
+export type CouponStatus = "AVAILABLE" | "USED" | "EXPIRED" | string;
+export type CouponDiscountType = "FIXED" | "PERCENT" | string;
+
+export interface Coupon {
+    couponId?: number;
+    id?: number;
+    name?: string;
+    status?: CouponStatus;
+    discountType?: CouponDiscountType;
+    discountAmount?: number;
+    maxDiscountAmount?: number | null;
+    minOrderAmount?: number;
+    issuedAt?: string | null;
+    expiresAt?: string | null;
+    usedAt?: string | null;
+}
+
+export interface CouponValidation {
+    couponId: number;
+    available: boolean;
+    discountAmount: number;
+    finalAmount: number;
+}
+
 export interface Category {
     key: string;
     slug?: string;

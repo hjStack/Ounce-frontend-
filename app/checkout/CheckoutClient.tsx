@@ -7,8 +7,16 @@ import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useCart } from "../../components/CartContext";
 import { useToast } from "../../components/ToastContext";
+import {
+    couponStatusLabel,
+    couponUnavailableReason,
+    formatCouponBenefit,
+    formatCouponCondition,
+    formatCouponDate,
+    getCouponId,
+} from "../../lib/coupons";
 import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
-import type { CartItem, Member } from "../../types/api";
+import type { CartItem, Coupon, CouponValidation, Member } from "../../types/api";
 
 declare global {
     interface Window {
@@ -38,6 +46,10 @@ export default function CheckoutClient() {
     const [zipCode, setZipCode] = useState("");
     const [address, setAddress] = useState("");
     const [addressDetail, setAddressDetail] = useState("");
+    const [coupons, setCoupons] = useState<Coupon[]>([]);
+    const [couponValidations, setCouponValidations] = useState<CouponValidation[]>([]);
+    const [couponLoading, setCouponLoading] = useState(false);
+    const [selectedCouponId, setSelectedCouponId] = useState<number | null>(null);
 
     useEffect(() => {
         fetch("/api/members/me", { credentials: "include" })
@@ -78,13 +90,73 @@ export default function CheckoutClient() {
             .finally(() => setLoading(false));
     }, [router, toast]);
 
+    const orderAmount = useMemo(() => cart.reduce((sum, item) => sum + item.finalPrice * item.quantity, 0), [cart]);
+    const totalItems = useMemo(() => cart.reduce((sum, item) => sum + item.quantity, 0), [cart]);
+
+    useEffect(() => {
+        if (loading || cart.length === 0) return;
+
+        let ignore = false;
+
+        async function loadCoupons() {
+            setCouponLoading(true);
+            try {
+                const [couponRes, availableRes] = await Promise.all([
+                    fetch("/api/coupons/me", { credentials: "include" }),
+                    fetch(`/api/coupons/me/available?orderAmount=${orderAmount}`, { credentials: "include" }),
+                ]);
+
+                if (!couponRes.ok || !availableRes.ok) throw new Error("쿠폰 로드 실패");
+
+                const [nextCoupons, nextValidations] = (await Promise.all([
+                    couponRes.json(),
+                    availableRes.json(),
+                ])) as [Coupon[], CouponValidation[]];
+
+                if (ignore) return;
+
+                setCoupons(nextCoupons);
+                setCouponValidations(nextValidations);
+                setSelectedCouponId((current) => {
+                    if (current === null) return null;
+                    return nextValidations.some((coupon) => Number(coupon.couponId) === current && coupon.available) ? current : null;
+                });
+            } catch {
+                if (ignore) return;
+                setCoupons([]);
+                setCouponValidations([]);
+                setSelectedCouponId(null);
+            } finally {
+                if (!ignore) setCouponLoading(false);
+            }
+        }
+
+        void loadCoupons();
+        return () => {
+            ignore = true;
+        };
+    }, [cart.length, loading, orderAmount]);
+
+    const couponValidationById = useMemo(() => {
+        return new Map(couponValidations.map((coupon) => [Number(coupon.couponId), coupon]));
+    }, [couponValidations]);
+
+    const availableCouponCount = useMemo(() => {
+        return coupons.filter((coupon) => {
+            const validation = couponValidationById.get(getCouponId(coupon));
+            return validation?.available;
+        }).length;
+    }, [couponValidationById, coupons]);
+
+    const selectedCouponValidation = selectedCouponId === null ? undefined : couponValidationById.get(selectedCouponId);
+    const couponDiscount = selectedCouponValidation?.available ? Number(selectedCouponValidation.discountAmount || 0) : 0;
+
     const summary = useMemo(() => {
-        const totalPrice = cart.reduce((sum, item) => sum + item.finalPrice * item.quantity, 0);
-        const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-        const shipping = totalPrice === 0 || totalPrice >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
-        const freeShippingGap = Math.max(0, FREE_SHIPPING_THRESHOLD - totalPrice);
-        return { totalItems, totalPrice, shipping, finalPrice: totalPrice + shipping, freeShippingGap };
-    }, [cart]);
+        const shipping = orderAmount === 0 || orderAmount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
+        const freeShippingGap = Math.max(0, FREE_SHIPPING_THRESHOLD - orderAmount);
+        const discountedProductTotal = Math.max(orderAmount - couponDiscount, 0);
+        return { totalItems, totalPrice: orderAmount, shipping, couponDiscount, finalPrice: discountedProductTotal + shipping, freeShippingGap };
+    }, [couponDiscount, orderAmount, totalItems]);
 
     const searchAddress = () => {
         if (!window.daum?.Postcode) {
@@ -132,6 +204,7 @@ export default function CheckoutClient() {
                 body: JSON.stringify({
                     selectedCartProductIds: cart.map((item) => item.cartId),
                     deliveryType,
+                    couponId: selectedCouponId,
                     receiverName: receiverName.trim(),
                     receiverPhone: receiverPhone.trim(),
                     zipCode,
@@ -229,6 +302,69 @@ export default function CheckoutClient() {
                             </section>
 
                             <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
+                                <SectionTitle
+                                    icon="ri-coupon-3-line"
+                                    title="쿠폰"
+                                    meta={couponLoading ? "조회 중" : `${availableCouponCount}/${coupons.length}장 사용 가능`}
+                                />
+                                <div className="px-4 pb-4 md:px-5 md:pb-5">
+                                    {couponLoading ? (
+                                        <div className="grid gap-3 md:grid-cols-2">
+                                            {Array.from({ length: 2 }, (_, index) => (
+                                                <div key={index} className="h-28 animate-pulse rounded-lg border border-gray-100 bg-gray-50" />
+                                            ))}
+                                        </div>
+                                    ) : coupons.length === 0 ? (
+                                        <div className="flex items-center gap-3 rounded-lg border border-dashed border-gray-200 bg-gray-50 p-4">
+                                            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-gray-400">
+                                                <i className="ri-coupon-3-line text-xl" />
+                                            </span>
+                                            <div>
+                                                <p className="text-sm font-bold text-gray-800">보유 쿠폰이 없습니다</p>
+                                                <p className="mt-1 text-xs text-gray-500">발급된 쿠폰이 생기면 여기에 표시됩니다.</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col gap-3">
+                                            <label
+                                                className={`flex cursor-pointer items-center justify-between rounded-lg border p-4 transition-colors ${
+                                                    selectedCouponId === null ? "border-[#447861] bg-[#447861]/10" : "border-gray-200 bg-white hover:border-gray-300"
+                                                }`}
+                                            >
+                                                <span className="flex items-center gap-3">
+                                                    <input
+                                                        type="radio"
+                                                        name="coupon"
+                                                        checked={selectedCouponId === null}
+                                                        onChange={() => setSelectedCouponId(null)}
+                                                        className="accent-[#447861]"
+                                                    />
+                                                    <span className="text-sm font-bold text-gray-900">쿠폰 사용 안 함</span>
+                                                </span>
+                                                <span className="text-xs font-medium text-gray-400">할인 0원</span>
+                                            </label>
+
+                                            <div className="grid gap-3 md:grid-cols-2">
+                                                {coupons.map((coupon, index) => {
+                                                    const couponId = getCouponId(coupon);
+                                                    return (
+                                                        <CouponOption
+                                                            key={couponId || index}
+                                                            coupon={coupon}
+                                                            orderAmount={summary.totalPrice}
+                                                            selected={selectedCouponId === couponId}
+                                                            validation={couponValidationById.get(couponId)}
+                                                            onSelect={setSelectedCouponId}
+                                                        />
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </section>
+
+                            <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
                                 <SectionTitle icon="ri-map-pin-line" title="배송지" meta="회원 정보 기준" />
                                 <div className="grid gap-3 px-4 pb-4 md:grid-cols-2 md:px-5 md:pb-5">
                                     <Input id="receiver-name" label="받는 분" value={receiverName} onChange={setReceiverName} placeholder="이름" />
@@ -285,6 +421,9 @@ export default function CheckoutClient() {
                                         value={summary.shipping === 0 ? "무료" : won(summary.shipping)}
                                         valueClassName={summary.shipping === 0 ? "font-semibold text-[#447861]" : undefined}
                                     />
+                                    {summary.couponDiscount > 0 && (
+                                        <SummaryRow label="쿠폰 할인" value={`-${won(summary.couponDiscount)}`} valueClassName="font-semibold text-deal-500" />
+                                    )}
                                     {!loading && summary.freeShippingGap > 0 && (
                                         <div className="rounded-lg bg-[#447861]/10 px-3 py-2 text-xs font-medium text-[#447861]">
                                             {summary.freeShippingGap.toLocaleString("ko-KR")}원 더 담으면 무료배송
@@ -358,6 +497,60 @@ function SectionTitle({ icon, title, meta }: { icon: string; title: string; meta
             </div>
             {meta && <span className="text-xs font-medium text-gray-400">{meta}</span>}
         </div>
+    );
+}
+
+function CouponOption({
+    coupon,
+    orderAmount,
+    selected,
+    validation,
+    onSelect,
+}: {
+    coupon: Coupon;
+    orderAmount: number;
+    selected: boolean;
+    validation?: CouponValidation;
+    onSelect: (couponId: number) => void;
+}) {
+    const couponId = getCouponId(coupon);
+    const selectable = couponId > 0 && validation?.available === true;
+    const statusTone = selectable ? "bg-[#447861]/10 text-[#447861]" : "bg-gray-100 text-gray-400";
+
+    return (
+        <label
+            className={`relative flex min-h-32 overflow-hidden rounded-lg border p-4 transition-colors ${
+                selectable
+                    ? selected
+                        ? "cursor-pointer border-[#447861] bg-[#447861]/10"
+                        : "cursor-pointer border-gray-200 bg-white hover:border-gray-300"
+                    : "cursor-not-allowed border-gray-100 bg-gray-50 opacity-75"
+            }`}
+        >
+            <input
+                type="radio"
+                name="coupon"
+                value={couponId}
+                checked={selected}
+                disabled={!selectable}
+                onChange={() => onSelect(couponId)}
+                className="mt-1 shrink-0 accent-[#447861]"
+            />
+            <span className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-gray-100 bg-background-cream" />
+            <div className="ml-3 min-w-0 flex-1">
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${statusTone}`}>{couponStatusLabel(coupon.status)}</span>
+                    <span className="text-xs font-bold text-deal-500">{formatCouponBenefit(coupon)}</span>
+                </div>
+                <p className="clamp-1 text-sm font-bold text-gray-900">{coupon.name || "쿠폰"}</p>
+                <p className="mt-1 text-xs leading-relaxed text-gray-500">
+                    {formatCouponCondition(coupon)} · {formatCouponDate(coupon.expiresAt)}까지
+                </p>
+                <p className={`mt-2 text-xs font-semibold ${selectable ? "text-[#447861]" : "text-gray-400"}`}>
+                    {selectable ? `-${won(validation?.discountAmount)} 적용` : couponUnavailableReason(coupon, orderAmount)}
+                </p>
+            </div>
+        </label>
     );
 }
 

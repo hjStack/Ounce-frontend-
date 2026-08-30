@@ -6,13 +6,9 @@ import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
 import { useToast } from "../../components/ToastContext";
+import { couponStatusLabel, formatCouponBenefit, formatCouponCondition, formatCouponDate, getCouponId } from "../../lib/coupons";
 import { won } from "../../lib/products";
-import type { Member, Order } from "../../types/api";
-
-interface Coupon {
-    couponId?: number;
-    id?: number;
-}
+import type { Coupon, Member, Order } from "../../types/api";
 
 const WITHDRAW_TEXT = "ounce를 탈퇴합니다.";
 
@@ -62,6 +58,8 @@ export default function AccountClient() {
         };
     }, [router, toast]);
 
+    const availableCouponCount = useMemo(() => coupons.filter((coupon) => coupon.status === "AVAILABLE").length, [coupons]);
+
     const stats = useMemo(() => {
         const delivered = orders.filter((order) => order.status === "DELIVERED").length;
         const spent = orders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
@@ -69,9 +67,9 @@ export default function AccountClient() {
             { label: "총 주문", value: `${orders.length}건` },
             { label: "누적 결제", value: won(spent) },
             { label: "배송 완료", value: `${delivered}건` },
-            { label: "보유 쿠폰", value: `${coupons.length}장`, accent: true },
+            { label: "사용 가능 쿠폰", value: `${availableCouponCount}장`, accent: true },
         ];
-    }, [coupons.length, orders]);
+    }, [availableCouponCount, orders]);
 
     const name = member?.name || "사용자";
     const initial = name.charAt(0).toUpperCase();
@@ -147,6 +145,7 @@ export default function AccountClient() {
                                 <div className="flex flex-col gap-1">
                                     <QuickLink href="/orders" icon="ri-file-list-3-line" label="주문 내역" />
                                     <QuickLink href="/cart" icon="ri-shopping-cart-2-line" label="장바구니" />
+                                    <QuickLink href="#account-coupons" icon="ri-coupon-3-line" label="쿠폰함" />
                                     <QuickLink href="/products" icon="ri-store-line" label="상품 둘러보기" />
                                 </div>
                             </section>
@@ -161,35 +160,60 @@ export default function AccountClient() {
                         </aside>
 
                         <section className="flex-1">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h2 className="text-sm font-bold text-gray-900">최근 주문</h2>
-                                <Link href="/orders" className="text-xs text-gray-500 transition-colors hover:text-gray-900">
-                                    전체 보기
-                                </Link>
+                            <div id="account-coupons" className="mb-8 scroll-mt-24">
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-sm font-bold text-gray-900">보유 쿠폰</h2>
+                                    <span className="text-xs font-medium text-gray-400">사용 가능 {availableCouponCount}장</span>
+                                </div>
+
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    {loading &&
+                                        Array.from({ length: 2 }, (_, index) => (
+                                            <div key={index} className="h-32 animate-pulse rounded-xl border border-gray-100 bg-white" />
+                                        ))}
+                                    {!loading &&
+                                        coupons.map((coupon, index) => (
+                                            <AccountCouponCard key={getCouponId(coupon) || index} coupon={coupon} />
+                                        ))}
+                                    {!loading && coupons.length === 0 && (
+                                        <div className="rounded-xl border border-dashed border-gray-200 bg-white py-12 text-center text-sm text-gray-400 md:col-span-2">
+                                            보유한 쿠폰이 없습니다.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
-                            <div className="flex flex-col gap-3">
-                                {loading &&
-                                    Array.from({ length: 3 }, (_, index) => (
-                                        <div key={index} className="h-20 animate-pulse rounded-xl border border-gray-100 bg-white" />
-                                    ))}
-                                {!loading &&
-                                    orders.slice(0, 5).map((order) => (
-                                        <Link
-                                            key={order.orderId}
-                                            href="/orders"
-                                            className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4 transition-colors hover:border-gray-200"
-                                        >
-                                            <div>
-                                                <p className="text-sm font-bold text-gray-900">ORD-{String(order.orderId).padStart(6, "0")}</p>
-                                                <p className="mt-1 text-xs text-gray-400">{order.status}</p>
-                                            </div>
-                                            <p className="text-sm font-bold text-gray-900">{won(order.totalAmount)}</p>
-                                        </Link>
-                                    ))}
-                                {!loading && orders.length === 0 && (
-                                    <div className="rounded-xl border border-gray-100 bg-white py-16 text-center text-sm text-gray-400">아직 주문 내역이 없습니다.</div>
-                                )}
+                            <div>
+                                <div className="mb-4 flex items-center justify-between">
+                                    <h2 className="text-sm font-bold text-gray-900">최근 주문</h2>
+                                    <Link href="/orders" className="text-xs text-gray-500 transition-colors hover:text-gray-900">
+                                        전체 보기
+                                    </Link>
+                                </div>
+
+                                <div className="flex flex-col gap-3">
+                                    {loading &&
+                                        Array.from({ length: 3 }, (_, index) => (
+                                            <div key={index} className="h-20 animate-pulse rounded-xl border border-gray-100 bg-white" />
+                                        ))}
+                                    {!loading &&
+                                        orders.slice(0, 5).map((order) => (
+                                            <Link
+                                                key={order.orderId}
+                                                href="/orders"
+                                                className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4 transition-colors hover:border-gray-200"
+                                            >
+                                                <div>
+                                                    <p className="text-sm font-bold text-gray-900">ORD-{String(order.orderId).padStart(6, "0")}</p>
+                                                    <p className="mt-1 text-xs text-gray-400">{order.status}</p>
+                                                </div>
+                                                <p className="text-sm font-bold text-gray-900">{won(order.totalAmount)}</p>
+                                            </Link>
+                                        ))}
+                                    {!loading && orders.length === 0 && (
+                                        <div className="rounded-xl border border-gray-100 bg-white py-16 text-center text-sm text-gray-400">아직 주문 내역이 없습니다.</div>
+                                    )}
+                                </div>
                             </div>
                         </section>
                     </div>
@@ -261,5 +285,31 @@ function QuickLink({ href, icon, label }: { href: string; icon: string; label: s
         <Link href={href} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50">
             <i className={`${icon} text-gray-400`} /> {label}
         </Link>
+    );
+}
+
+function AccountCouponCard({ coupon }: { coupon: Coupon }) {
+    const available = coupon.status === "AVAILABLE";
+    const statusClassName = available
+        ? "bg-[#447861]/10 text-[#447861]"
+        : coupon.status === "USED"
+          ? "bg-gray-100 text-gray-400"
+          : "bg-deal-50 text-deal-500";
+
+    return (
+        <div className={`relative overflow-hidden rounded-xl border bg-white p-4 ${available ? "border-[#447861]/20" : "border-gray-100"}`}>
+            <span className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-gray-100 bg-[#fcfbf9]" />
+            <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <p className="text-lg font-bold text-deal-500">{formatCouponBenefit(coupon)}</p>
+                    <p className="mt-1 clamp-1 text-sm font-bold text-gray-900">{coupon.name || "쿠폰"}</p>
+                </div>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClassName}`}>{couponStatusLabel(coupon.status)}</span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+                <span>{formatCouponCondition(coupon)}</span>
+                <span>{formatCouponDate(coupon.expiresAt)}까지</span>
+            </div>
+        </div>
     );
 }

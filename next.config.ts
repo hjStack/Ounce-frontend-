@@ -6,7 +6,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "ounce-bucket-185271206377-ap-northeast-2-an.s3.ap-northeast-2.amazonaws.com",
+        hostname:
+          "ounce-bucket-185271206377-ap-northeast-2-an.s3.ap-northeast-2.amazonaws.com",
       },
     ],
   },
@@ -16,14 +17,18 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  
+
   async rewrites() {
-    const backend = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8081";
+    const backend =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8081";
 
     return [
       { source: "/api/:path*", destination: `${backend}/api/:path*` },
       { source: "/oauth2/:path*", destination: `${backend}/oauth2/:path*` },
-      { source: "/login/oauth2/:path*", destination: `${backend}/login/oauth2/:path*` },
+      {
+        source: "/login/oauth2/:path*",
+        destination: `${backend}/login/oauth2/:path*`,
+      },
       { source: "/logout", destination: `${backend}/logout` },
     ];
   },
