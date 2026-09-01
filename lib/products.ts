@@ -15,7 +15,8 @@ export const CATEGORIES: Category[] = [
     { key: "noodle", slug: "noodle", label: "면·파스타", icon: "ri-bowl-line", desktop: true },
     { key: "meat", slug: "meat", label: "고기·구이", icon: "ri-restaurant-line", desktop: true },
     { key: "nabe", slug: "nabe", label: "나베·샤브", icon: "ri-drop-line", desktop: false },
-    { key: "etc", slug: "etc", label: "분식·해물", icon: "ri-star-smile-line", desktop: false },
+    { key: "snack", slug: "snack", label: "분식·해물", icon: "ri-star-smile-line", desktop: false },
+    { key: "salad", slug: "salad", label: "간단 아침식사", icon: "ri-sun-line", desktop: false },
 ];
 
 const CATEGORY_PATTERNS: Record<string, RegExp> = {
@@ -23,7 +24,8 @@ const CATEGORY_PATTERNS: Record<string, RegExp> = {
     noodle: /(면|파스타|우동|라멘|국수|스파게티|칼국수)/,
     meat: /(고기|구이|불고기|삼겹|제육|갈비|스테이크|닭|치킨)/,
     nabe: /(나베|샤브|전골)/,
-    etc: /(떡볶이|해물|새우|오징어|분식|볶음밥)/,
+    snack: /(떡볶이|해물|새우|오징어|분식|볶음밥)/,
+    salad: /(아침|브런치|샐러드|죽|수프|스프|계란|달걀|토스트|샌드위치|요거트)/,
 };
 
 export function splitName(name?: string) {

@@ -4,12 +4,15 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Footer from "../components/Footer";
 import ProductCard, { CategorySkeleton, ProductSkeleton } from "../components/ProductCard";
+import { useAuth } from "../components/AuthContext";
+import { LaunchCouponStrip } from "../components/LaunchFreeShippingCoupon";
 import { CATEGORIES, fetchCatalog, fetchCategoryCounts, PRODUCT_PLACEHOLDER } from "../lib/products";
 import type { Product } from "../types/api";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
 export default function HomeClient() {
+    const { isAuthenticated } = useAuth();
     const [countdown, setCountdown] = useState("--:--:--");
     const [menuCount, setMenuCount] = useState("–");
     const [products, setProducts] = useState<Product[]>([]);
@@ -52,11 +55,16 @@ export default function HomeClient() {
     }, []);
 
     const featured = products.slice(0, 8);
-    const categoryCards = useMemo(() => CATEGORIES.filter((category) => category.key !== "etc").slice(0, 5), []);
+    const categoryCards = useMemo(() => CATEGORIES, []);
 
     return (
         <div className="bg-background-cream">
             <main className="pt-20 md:pt-24">
+                <LaunchCouponStrip
+                    href={isAuthenticated ? "/account#account-coupons" : "/signup"}
+                    ctaLabel={isAuthenticated ? "내 쿠폰 보기" : "쿠폰 발급받기"}
+                />
+
                 <section className="mx-auto flex w-full max-w-7xl flex-col items-center gap-12 px-6 pb-14 pt-8 md:flex-row md:px-8 md:pb-20 md:pt-12 lg:gap-20 lg:px-12">
                     <div className="z-10 flex w-full flex-col items-start text-left md:w-1/2">
                         <div className="mb-6 flex items-center gap-4">
@@ -185,9 +193,9 @@ export default function HomeClient() {
                             <p className="max-w-xs text-sm text-foreground-500">찌개부터 파스타까지, 먹고 싶은 걸로 골라보세요</p>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-5">
+                        <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-6">
                             {loading
-                                ? Array.from({ length: 5 }, (_, index) => <CategorySkeleton key={index} />)
+                                ? Array.from({ length: categoryCards.length }, (_, index) => <CategorySkeleton key={index} />)
                                 : categoryCards.map((category, index) => {
                                       const cover = products[index]?.imageUrl || PRODUCT_PLACEHOLDER;
                                       return (

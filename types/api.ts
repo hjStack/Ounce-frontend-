@@ -55,7 +55,7 @@ export interface Category {
     desktop?: boolean;
 }
 
-export type ProductStatus = "ON_SALE" | "SOLD_OUT" | "HIDDEN" | string;
+export type ProductStatus = "PREPARING" | "VISIBLE" | "TIME_DEAL" | "SOLD_OUT" | "STOPPED" | "ON_SALE" | "HIDDEN" | string;
 
 export interface Product {
     productId: number;

@@ -16,6 +16,7 @@ import {
     getCouponId,
 } from "../../lib/coupons";
 import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "../../lib/shipping";
 import type { CartItem, Coupon, CouponValidation, Member } from "../../types/api";
 
 declare global {
@@ -27,9 +28,6 @@ declare global {
         };
     }
 }
-
-const FREE_SHIPPING_THRESHOLD = 30_000;
-const SHIPPING_FEE = 3_000;
 
 type DeliveryType = "DAWN" | "NORMAL";
 

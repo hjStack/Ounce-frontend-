@@ -60,18 +60,22 @@ export default function AccountClient() {
 
     const availableCouponCount = useMemo(() => coupons.filter((coupon) => coupon.status === "AVAILABLE").length, [coupons]);
 
-    const stats = useMemo(() => {
+    const orderStats = useMemo(() => {
         const delivered = orders.filter((order) => order.status === "DELIVERED").length;
         const spent = orders.reduce((sum, order) => sum + Number(order.totalAmount || 0), 0);
         return [
-            { label: "총 주문", value: `${orders.length}건` },
-            { label: "누적 결제", value: won(spent) },
-            { label: "배송 완료", value: `${delivered}건` },
-            { label: "사용 가능 쿠폰", value: `${availableCouponCount}장`, accent: true },
+            { label: "총 주문", value: `${orders.length}건`, icon: "ri-file-list-3-line" },
+            { label: "누적 결제", value: won(spent), icon: "ri-wallet-3-line" },
+            { label: "배송 완료", value: `${delivered}건`, icon: "ri-truck-line" },
         ];
-    }, [availableCouponCount, orders]);
+    }, [orders]);
 
-    const name = member?.name || "사용자";
+    const name = member?.name || (loading ? "확인 중" : "사용자");
+    const email = member?.email || (loading ? "로그인 정보 확인 중" : "-");
+    const grade = member?.grade || "BASIC";
+    const pointLabel = `${Number(member?.point || 0).toLocaleString("ko-KR")}P`;
+    const couponCountLabel = loading ? "확인 중" : `${coupons.length}장`;
+    const availableCouponLabel = loading ? "확인 중" : `${availableCouponCount}장 사용 가능`;
     const initial = name.charAt(0).toUpperCase();
 
     const withdraw = async () => {
@@ -95,128 +99,187 @@ export default function AccountClient() {
     };
 
     return (
-        <div className="bg-[#fcfbf9]">
+        <div className="bg-background-cream">
             <main className="min-h-screen pt-20 md:pt-24">
-                <div className="mx-auto w-full max-w-6xl px-4 py-6 md:px-8 lg:px-12">
-                    <div className="mb-8">
-                        <div className="mb-3 flex items-center gap-3">
-                            <div className="h-px w-8 bg-deal-500" />
-                            <span className="text-xs font-bold text-deal-500">MY ACCOUNT</span>
-                        </div>
-                        <h1 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">내 계정</h1>
-                        <p className="mt-1 text-sm text-gray-500">Ounce와 함께한 여정</p>
-                    </div>
-
-                    <div className="mb-8 grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-                        {stats.map((item) => (
-                            <div key={item.label} className="rounded-xl border border-gray-100 bg-white p-5">
-                                <div className="mb-1.5 text-xs text-gray-400">{item.label}</div>
-                                <div className={`text-2xl font-bold ${item.accent ? "text-deal-500" : "text-gray-900"}`}>{loading ? "-" : item.value}</div>
+                <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-8 md:py-12 lg:px-12">
+                    <section className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                        <div>
+                            <div className="mb-4 flex items-center gap-3">
+                                <div className="h-px w-8 bg-primary-500" />
+                                <span className="text-xs font-bold text-primary-700">MY OUNCE</span>
                             </div>
-                        ))}
-                    </div>
+                            <h1 className="text-3xl font-black leading-tight text-foreground-950 md:text-4xl">내 계정</h1>
+                            <p className="mt-2 break-keep text-sm font-medium text-foreground-700">
+                                회원 정보와 혜택, 쿠폰을 한 화면에서 확인하세요.
+                            </p>
+                        </div>
 
-                    <div className="flex flex-col gap-6 lg:flex-row">
-                        <aside className="w-full shrink-0 lg:w-80">
-                            <section className="rounded-xl border border-gray-100 bg-white p-6">
-                                <div className="mb-5 flex items-center gap-4">
-                                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gray-900 text-xl font-bold text-white">{initial}</div>
+                        <div className="flex flex-wrap gap-2">
+                            <AccountActionLink href="/orders" icon="ri-file-list-3-line" label="주문 내역" />
+                            <AccountActionLink href="/cart" icon="ri-shopping-cart-2-line" label="장바구니" />
+                            <AccountActionLink href="/products" icon="ri-store-line" label="밀키트 보기" />
+                        </div>
+                    </section>
+
+                    <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
+                        <div className="rounded-xl border border-background-200 bg-white p-6 shadow-sm md:p-8">
+                            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                                <div className="flex min-w-0 items-center gap-4">
+                                    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-ink-500 text-2xl font-black text-white">
+                                        {initial}
+                                    </div>
                                     <div className="min-w-0">
-                                        <div className="text-sm font-bold text-gray-900">{name}님</div>
-                                        <div className="truncate text-xs text-gray-400">{member?.email || "로그인 정보 확인 중"}</div>
+                                        <p className="text-xs font-bold text-primary-700">회원 정보</p>
+                                        <h2 className="mt-1 truncate text-2xl font-black text-foreground-950">{name}님</h2>
+                                        <p className="mt-1 truncate text-sm font-medium text-foreground-700">{email}</p>
                                     </div>
                                 </div>
 
-                                <div className="mb-4 h-px bg-gray-100" />
+                                <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1.5 text-xs font-extrabold text-primary-700">
+                                    <i className="ri-vip-crown-line text-sm" />
+                                    {grade}
+                                </span>
+                            </div>
 
-                                <div className="flex flex-col gap-3">
-                                    <DetailRow label="이름" value={member?.name || "-"} />
-                                    <DetailRow label="이메일" value={member?.email || "-"} />
-                                    <div className="flex items-center justify-between text-sm">
-                                        <span className="text-gray-400">회원 등급</span>
-                                        <span className="rounded-full bg-[#fdf0e8] px-2.5 py-0.5 text-xs font-medium text-deal-500">{member?.grade || "BASIC"}</span>
+                            <dl className="mt-7 grid gap-x-8 gap-y-5 border-t border-background-200 pt-6 sm:grid-cols-2">
+                                <AccountDetail icon="ri-user-smile-line" label="이름" value={name} />
+                                <AccountDetail icon="ri-mail-line" label="이메일" value={email} />
+                                <AccountDetail icon="ri-vip-crown-line" label="회원등급" value={grade} accent />
+                                <AccountDetail icon="ri-coin-line" label="포인트" value={pointLabel} accent />
+                                <AccountDetail icon="ri-coupon-3-line" label="보유 쿠폰" value={couponCountLabel} hint={availableCouponLabel} accent />
+                            </dl>
+                        </div>
+
+                        <div className="rounded-xl border border-primary-100 bg-white p-6 shadow-sm">
+                            <div className="flex items-start justify-between gap-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-50 text-primary-700">
+                                    <i className="ri-coupon-3-line text-2xl" />
+                                </div>
+                                <span className="rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-extrabold text-primary-700">
+                                    쿠폰 지갑
+                                </span>
+                            </div>
+
+                            <p className="mt-6 text-sm font-bold text-foreground-600">보유 쿠폰</p>
+                            <div className="mt-2 flex items-end gap-2">
+                                <strong className="text-4xl font-black leading-none text-foreground-950">{couponCountLabel}</strong>
+                                <span className="pb-1 text-sm font-extrabold text-primary-700">{availableCouponLabel}</span>
+                            </div>
+
+                            <div className="mt-5 rounded-lg border border-primary-100 bg-primary-50 px-4 py-3">
+                                <p className="break-keep text-xs font-bold leading-5 text-primary-800">
+                                    쿠폰함에서 사용 가능 상태와 만료일을 바로 확인할 수 있어요.
+                                </p>
+                            </div>
+
+                            <Link
+                                href="#account-coupons"
+                                className="mt-4 flex h-11 w-full items-center justify-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 text-sm font-extrabold text-primary-800 transition-colors hover:bg-primary-100"
+                            >
+                                쿠폰함 보기
+                                <i className="ri-arrow-right-line" />
+                            </Link>
+                        </div>
+                    </section>
+
+                    <section className="mt-4 grid gap-3 md:grid-cols-3">
+                        {orderStats.map((item) => (
+                            <MetricCard key={item.label} icon={item.icon} label={item.label} value={loading ? "-" : item.value} />
+                        ))}
+                    </section>
+
+                    <section id="account-coupons" className="mt-10 scroll-mt-28">
+                        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                            <div>
+                                <div className="mb-3 flex items-center gap-3">
+                                    <div className="h-px w-7 bg-primary-500" />
+                                    <span className="text-xs font-bold text-primary-700">COUPONS</span>
+                                </div>
+                                <h2 className="text-2xl font-black text-foreground-950">보유 쿠폰</h2>
+                                <p className="mt-1 text-sm font-medium text-foreground-700">
+                                    사용 가능 {loading ? "-" : availableCouponCount}장 · 전체 {loading ? "-" : coupons.length}장
+                                </p>
+                            </div>
+                            <Link
+                                href="/products"
+                                className="inline-flex w-fit items-center gap-1 text-xs font-extrabold text-primary-700 transition-colors hover:text-primary-900"
+                            >
+                                쿠폰 쓸 상품 보기
+                                <i className="ri-arrow-right-line" />
+                            </Link>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                            {loading &&
+                                Array.from({ length: 3 }, (_, index) => (
+                                    <div key={index} className="h-36 animate-pulse rounded-xl border border-background-200 bg-white" />
+                                ))}
+                            {!loading &&
+                                coupons.map((coupon, index) => (
+                                    <AccountCouponCard key={getCouponId(coupon) || index} coupon={coupon} />
+                                ))}
+                            {!loading && coupons.length === 0 && (
+                                <div className="rounded-xl border border-dashed border-background-300 bg-white px-6 py-12 text-center md:col-span-2 xl:col-span-3">
+                                    <i className="ri-coupon-3-line text-3xl text-foreground-300" />
+                                    <p className="mt-3 text-sm font-bold text-foreground-700">보유한 쿠폰이 없습니다.</p>
+                                    <p className="mt-1 text-xs font-medium text-foreground-600">새 쿠폰이 발급되면 이곳에 표시됩니다.</p>
+                                </div>
+                            )}
+                        </div>
+                    </section>
+
+                    <section className="mt-10 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                        <div>
+                            <div className="mb-4 flex items-center justify-between">
+                                <h2 className="text-xl font-black text-foreground-950">최근 주문</h2>
+                                <Link href="/orders" className="text-xs font-bold text-foreground-700 transition-colors hover:text-foreground-950">
+                                    전체 보기
+                                </Link>
+                            </div>
+
+                            <div className="flex flex-col gap-3">
+                                {loading &&
+                                    Array.from({ length: 3 }, (_, index) => (
+                                        <div key={index} className="h-20 animate-pulse rounded-xl border border-background-200 bg-white" />
+                                    ))}
+                                {!loading &&
+                                    orders.slice(0, 5).map((order) => (
+                                        <Link
+                                            key={order.orderId}
+                                            href="/orders"
+                                            className="flex items-center justify-between gap-4 rounded-xl border border-background-200 bg-white p-4 transition-colors hover:border-primary-200"
+                                        >
+                                            <div>
+                                                <p className="text-sm font-bold text-foreground-950">ORD-{String(order.orderId).padStart(6, "0")}</p>
+                                                <p className="mt-1 text-xs font-medium text-foreground-600">{order.status}</p>
+                                            </div>
+                                            <p className="text-sm font-bold text-foreground-950">{won(order.totalAmount)}</p>
+                                        </Link>
+                                    ))}
+                                {!loading && orders.length === 0 && (
+                                    <div className="rounded-xl border border-background-200 bg-white py-16 text-center text-sm font-medium text-foreground-600">
+                                        아직 주문 내역이 없습니다.
                                     </div>
-                                    <DetailRow label="포인트" value={`${Number(member?.point || 0).toLocaleString("ko-KR")}P`} strong />
-                                </div>
-                            </section>
+                                )}
+                            </div>
+                        </div>
 
-                            <section className="mt-4 rounded-xl border border-gray-100 bg-white p-5">
-                                <div className="mb-3 text-xs font-bold text-gray-900">바로가기</div>
-                                <div className="flex flex-col gap-1">
-                                    <QuickLink href="/orders" icon="ri-file-list-3-line" label="주문 내역" />
-                                    <QuickLink href="/cart" icon="ri-shopping-cart-2-line" label="장바구니" />
-                                    <QuickLink href="#account-coupons" icon="ri-coupon-3-line" label="쿠폰함" />
-                                    <QuickLink href="/products" icon="ri-store-line" label="상품 둘러보기" />
-                                </div>
-                            </section>
-
+                        <aside className="rounded-xl border border-background-200 bg-white p-5 shadow-sm">
+                            <h2 className="text-sm font-black text-foreground-950">계정 관리</h2>
+                            <div className="mt-4 flex flex-col gap-2">
+                                <QuickLink href="/support" icon="ri-customer-service-2-line" label="고객센터" />
+                                <QuickLink href="/subscription" icon="ri-calendar-check-line" label="내 구독" />
+                                <QuickLink href="/products" icon="ri-store-line" label="상품 둘러보기" />
+                            </div>
                             <button
                                 type="button"
                                 onClick={() => setWithdrawOpen(true)}
-                                className="mt-6 inline-flex items-center gap-1 text-xs text-gray-400 transition-colors hover:text-red-500"
+                                className="mt-6 inline-flex items-center gap-1 text-xs font-medium text-foreground-600 transition-colors hover:text-red-500"
                             >
                                 <i className="ri-logout-box-r-line" /> 회원 탈퇴
                             </button>
                         </aside>
-
-                        <section className="flex-1">
-                            <div id="account-coupons" className="mb-8 scroll-mt-24">
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="text-sm font-bold text-gray-900">보유 쿠폰</h2>
-                                    <span className="text-xs font-medium text-gray-400">사용 가능 {availableCouponCount}장</span>
-                                </div>
-
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {loading &&
-                                        Array.from({ length: 2 }, (_, index) => (
-                                            <div key={index} className="h-32 animate-pulse rounded-xl border border-gray-100 bg-white" />
-                                        ))}
-                                    {!loading &&
-                                        coupons.map((coupon, index) => (
-                                            <AccountCouponCard key={getCouponId(coupon) || index} coupon={coupon} />
-                                        ))}
-                                    {!loading && coupons.length === 0 && (
-                                        <div className="rounded-xl border border-dashed border-gray-200 bg-white py-12 text-center text-sm text-gray-400 md:col-span-2">
-                                            보유한 쿠폰이 없습니다.
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-
-                            <div>
-                                <div className="mb-4 flex items-center justify-between">
-                                    <h2 className="text-sm font-bold text-gray-900">최근 주문</h2>
-                                    <Link href="/orders" className="text-xs text-gray-500 transition-colors hover:text-gray-900">
-                                        전체 보기
-                                    </Link>
-                                </div>
-
-                                <div className="flex flex-col gap-3">
-                                    {loading &&
-                                        Array.from({ length: 3 }, (_, index) => (
-                                            <div key={index} className="h-20 animate-pulse rounded-xl border border-gray-100 bg-white" />
-                                        ))}
-                                    {!loading &&
-                                        orders.slice(0, 5).map((order) => (
-                                            <Link
-                                                key={order.orderId}
-                                                href="/orders"
-                                                className="flex items-center justify-between gap-4 rounded-xl border border-gray-100 bg-white p-4 transition-colors hover:border-gray-200"
-                                            >
-                                                <div>
-                                                    <p className="text-sm font-bold text-gray-900">ORD-{String(order.orderId).padStart(6, "0")}</p>
-                                                    <p className="mt-1 text-xs text-gray-400">{order.status}</p>
-                                                </div>
-                                                <p className="text-sm font-bold text-gray-900">{won(order.totalAmount)}</p>
-                                            </Link>
-                                        ))}
-                                    {!loading && orders.length === 0 && (
-                                        <div className="rounded-xl border border-gray-100 bg-white py-16 text-center text-sm text-gray-400">아직 주문 내역이 없습니다.</div>
-                                    )}
-                                </div>
-                            </div>
-                        </section>
-                    </div>
+                    </section>
                 </div>
             </main>
 
@@ -227,7 +290,7 @@ export default function AccountClient() {
                             <i className="ri-error-warning-line text-2xl text-red-500" />
                         </div>
                         <h3 className="mb-2 text-lg font-bold text-gray-900">정말 탈퇴하시겠어요?</h3>
-                        <p className="mb-5 text-sm leading-relaxed text-gray-500">
+                        <p className="mb-5 text-sm font-medium leading-relaxed text-gray-700">
                             탈퇴 시 주문 내역, 포인트, 쿠폰, 장바구니 등 모든 정보가 삭제되며 복구할 수 없습니다.
                         </p>
                         <div className="mb-5">
@@ -257,7 +320,7 @@ export default function AccountClient() {
                                 type="button"
                                 onClick={() => void withdraw()}
                                 disabled={withdrawText.trim() !== WITHDRAW_TEXT || deleting}
-                                className="flex-1 rounded-lg bg-red-500 py-2.5 text-sm font-medium text-white transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-red-200"
+                                className="flex-1 rounded-lg border border-red-200 bg-red-50 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-red-100 disabled:bg-red-50 disabled:text-red-400"
                             >
                                 {deleting ? "처리 중" : "탈퇴하기"}
                             </button>
@@ -271,19 +334,67 @@ export default function AccountClient() {
     );
 }
 
-function DetailRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+function AccountDetail({
+    icon,
+    label,
+    value,
+    hint,
+    accent = false,
+}: {
+    icon: string;
+    label: string;
+    value: string;
+    hint?: string;
+    accent?: boolean;
+}) {
     return (
-        <div className="flex justify-between text-sm">
-            <span className="text-gray-400">{label}</span>
-            <span className={strong ? "font-bold text-gray-900" : "font-medium text-gray-800"}>{value}</span>
+        <div className="flex items-start gap-3">
+            <span
+                className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                    accent ? "bg-primary-50 text-primary-700" : "bg-background-100 text-foreground-700"
+                }`}
+            >
+                <i className={`${icon} text-base`} />
+            </span>
+            <div className="min-w-0">
+                <dt className="text-sm font-bold text-foreground-600">{label}</dt>
+                <dd className={`mt-1 break-all text-sm font-extrabold ${accent ? "text-primary-700" : "text-foreground-900"}`}>
+                    {value}
+                </dd>
+                {hint && <p className="mt-0.5 text-xs font-bold text-foreground-600">{hint}</p>}
+            </div>
         </div>
+    );
+}
+
+function MetricCard({ icon, label, value }: { icon: string; label: string; value: string }) {
+    return (
+        <div className="rounded-xl border border-background-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-full bg-background-100 text-foreground-700">
+                <i className={`${icon} text-lg`} />
+            </div>
+            <p className="text-sm font-bold text-foreground-600">{label}</p>
+            <p className="mt-1 text-2xl font-black text-foreground-950">{value}</p>
+        </div>
+    );
+}
+
+function AccountActionLink({ href, icon, label }: { href: string; icon: string; label: string }) {
+    return (
+        <Link
+            href={href}
+            className="inline-flex h-9 items-center gap-1.5 rounded-md border border-background-200 bg-white px-3 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700"
+        >
+            <i className={`${icon} text-sm`} />
+            {label}
+        </Link>
     );
 }
 
 function QuickLink({ href, icon, label }: { href: string; icon: string; label: string }) {
     return (
-        <Link href={href} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-gray-50">
-            <i className={`${icon} text-gray-400`} /> {label}
+        <Link href={href} className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-foreground-700 transition-colors hover:bg-background-100">
+            <i className={`${icon} text-foreground-600`} /> {label}
         </Link>
     );
 }
@@ -291,22 +402,22 @@ function QuickLink({ href, icon, label }: { href: string; icon: string; label: s
 function AccountCouponCard({ coupon }: { coupon: Coupon }) {
     const available = coupon.status === "AVAILABLE";
     const statusClassName = available
-        ? "bg-[#447861]/10 text-[#447861]"
+        ? "bg-primary-50 text-primary-700"
         : coupon.status === "USED"
-          ? "bg-gray-100 text-gray-400"
-          : "bg-deal-50 text-deal-500";
+          ? "bg-background-100 text-foreground-600"
+          : "bg-foreground-100 text-foreground-700";
 
     return (
-        <div className={`relative overflow-hidden rounded-xl border bg-white p-4 ${available ? "border-[#447861]/20" : "border-gray-100"}`}>
-            <span className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-gray-100 bg-[#fcfbf9]" />
+        <div className={`relative overflow-hidden rounded-xl border bg-white p-5 shadow-sm ${available ? "border-primary-100" : "border-background-200"}`}>
+            <span className="absolute -right-3 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full border border-background-200 bg-background-cream" />
             <div className="mb-3 flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                    <p className="text-lg font-bold text-deal-500">{formatCouponBenefit(coupon)}</p>
-                    <p className="mt-1 clamp-1 text-sm font-bold text-gray-900">{coupon.name || "쿠폰"}</p>
+                    <p className={`text-lg font-black ${available ? "text-primary-700" : "text-foreground-700"}`}>{formatCouponBenefit(coupon)}</p>
+                    <p className="mt-1 clamp-1 text-sm font-bold text-foreground-950">{coupon.name || "쿠폰"}</p>
                 </div>
                 <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusClassName}`}>{couponStatusLabel(coupon.status)}</span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-500">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-medium text-foreground-700">
                 <span>{formatCouponCondition(coupon)}</span>
                 <span>{formatCouponDate(coupon.expiresAt)}까지</span>
             </div>

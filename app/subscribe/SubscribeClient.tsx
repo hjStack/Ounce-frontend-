@@ -28,6 +28,7 @@ export default function SubscribeClient() {
     const [slots, setSlots] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
     const [email, setEmail] = useState("");
+    const [privacyAgreed, setPrivacyAgreed] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [reserveMessage, setReserveMessage] = useState("");
     const selected = useMemo(() => planOf(meals), [meals]);
@@ -52,6 +53,10 @@ export default function SubscribeClient() {
         const nextEmail = email.trim();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
             setReserveMessage("이메일 주소를 다시 확인해 주세요.");
+            return;
+        }
+        if (!privacyAgreed) {
+            setReserveMessage("오픈 알림 수신 및 개인정보 수집 동의가 필요합니다.");
             return;
         }
 
@@ -97,6 +102,7 @@ export default function SubscribeClient() {
                             <Benefit icon="ri-calendar-check-line" title="한 주치 끼니 계획" text="개별 상품이 아니라 한 주의 저녁 계획을 대신 세워둡니다." />
                             <Benefit icon="ri-shopping-basket-line" title="결정 비용 제거" text="장보기, 재료 남김, 소비기한 관리가 줄어듭니다." />
                             <Benefit icon="ri-truck-line" title="무료배송" text="4끼 이상 구성은 배송비 없이 받아볼 수 있습니다." />
+                            <Benefit icon="ri-coupon-3-line" title="4주 유지 쿠폰" text="4주 연속 구독을 유지하면 무료배송 쿠폰을 발급합니다." />
                         </ul>
 
                         <p className="text-xs leading-relaxed text-foreground-400">Ounce 구독은 정식 오픈 준비 중입니다. 지금은 사전 예약만 받고 있어요.</p>
@@ -153,21 +159,41 @@ export default function SubscribeClient() {
                                     </div>
                                     <i className="ri-mail-send-line text-2xl text-primary-300" />
                                 </div>
-                                <form className="flex gap-2" onSubmit={submitReservation} noValidate>
-                                    <input
-                                        type="email"
-                                        value={email}
-                                        onChange={(event) => setEmail(event.target.value)}
-                                        placeholder="email@example.com"
-                                        className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-primary-300"
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={submitting}
-                                        className="shrink-0 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
-                                    >
-                                        예약
-                                    </button>
+                                <form className="flex flex-col gap-3" onSubmit={submitReservation} noValidate>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="email"
+                                            value={email}
+                                            onChange={(event) => setEmail(event.target.value)}
+                                            placeholder="email@example.com"
+                                            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-primary-300"
+                                            aria-describedby="subscription-privacy-notice"
+                                        />
+                                        <button
+                                            type="submit"
+                                            disabled={submitting}
+                                            className="shrink-0 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
+                                        >
+                                            예약
+                                        </button>
+                                    </div>
+                                    <p id="subscription-privacy-notice" className="text-[11px] leading-relaxed text-white/45">
+                                        수집 항목: 이메일 · 이용 목적: 구독 오픈 알림 발송 · 보유기간: 알림 발송 후 30일 또는 동의 철회 시까지
+                                    </p>
+                                    <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-white/70">
+                                        <input
+                                            type="checkbox"
+                                            checked={privacyAgreed}
+                                            onChange={(event) => setPrivacyAgreed(event.target.checked)}
+                                            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#447861]"
+                                        />
+                                        <span>
+                                            오픈 알림 수신 및 개인정보 수집에 동의합니다.{" "}
+                                            <Link href="/policy.html" className="font-semibold text-primary-200 underline underline-offset-2 hover:text-primary-100">
+                                                개인정보처리방침
+                                            </Link>
+                                        </span>
+                                    </label>
                                 </form>
                                 {reserveMessage && <p className="mt-3 text-xs leading-relaxed text-white/70">{reserveMessage}</p>}
                             </div>

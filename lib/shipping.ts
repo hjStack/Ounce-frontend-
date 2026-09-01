@@ -1,0 +1,3 @@
+export const FREE_SHIPPING_THRESHOLD = 30_000;
+export const FREE_SHIPPING_THRESHOLD_LABEL = "3만원";
+export const SHIPPING_FEE = 3_000;

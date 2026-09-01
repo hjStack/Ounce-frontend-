@@ -9,6 +9,7 @@ import { useCart } from "../../../components/CartContext";
 import { useToast } from "../../../components/ToastContext";
 import { formatDate } from "../../../lib/date";
 import { getProductPrice, isDiscounted, PRODUCT_PLACEHOLDER, won } from "../../../lib/products";
+import { FREE_SHIPPING_THRESHOLD_LABEL } from "../../../lib/shipping";
 import type { Product, Review } from "../../../types/api";
 
 type DetailTab = "desc" | "info" | "review";
@@ -400,7 +401,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
                         <div className="mt-5 flex gap-3 rounded-xl border border-background-200 bg-background-50 p-4 text-sm text-foreground-600">
                             <i className="ri-truck-line shrink-0 text-lg text-primary-500" />
                             <div>
-                                <strong className="text-foreground-800">3만원 이상 무료배송</strong>
+                                <strong className="text-foreground-800">{FREE_SHIPPING_THRESHOLD_LABEL} 이상 무료배송</strong>
                                 <p className="mt-0.5 text-foreground-500">오늘 밤 11시 전 주문 시 다음 회차로 출고됩니다.</p>
                             </div>
                         </div>

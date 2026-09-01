@@ -7,10 +7,8 @@ import Footer from "../../components/Footer";
 import { useCart } from "../../components/CartContext";
 import { useToast } from "../../components/ToastContext";
 import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "../../lib/shipping";
 import type { CartItem } from "../../types/api";
-
-const FREE_SHIPPING_THRESHOLD = 30_000;
-const SHIPPING_FEE = 3_000;
 
 interface SelectableCartItem extends CartItem {
     selected: boolean;
@@ -163,9 +161,10 @@ export default function CartClient() {
                         <p className="mb-6 text-sm text-gray-500">텅 빈 장바구니, Ounce의 특별함으로 가득 채워볼까요?</p>
                         <Link
                             href="/products"
-                            className="inline-block rounded-md bg-[#3b4055] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-gray-800"
+                            className="inline-flex items-center gap-1.5 rounded-md border border-primary-200 bg-primary-50 px-6 py-2.5 text-sm font-bold text-primary-800 shadow-sm transition-colors hover:bg-primary-100"
                         >
                             상품 둘러보기
+                            <i className="ri-arrow-right-line" />
                         </Link>
                     </div>
                 </main>

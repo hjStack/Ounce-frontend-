@@ -28,7 +28,7 @@ export default function LoginClient() {
 
     useEffect(() => {
         if (searchParams.get("welcome") === "true") {
-            toast("가입을 환영합니다! 축하 포인트 1,000P가 지급되었어요.");
+            toast("가입을 환영합니다! 1,000P와 첫 구매 무료배송 쿠폰이 준비됐어요.");
         }
     }, [searchParams, toast]);
 
@@ -96,15 +96,8 @@ export default function LoginClient() {
 
     return (
         <div className="flex min-h-screen flex-col bg-background-100">
-            <main className="flex flex-1 items-center justify-center px-4 py-12">
+            <main className="flex flex-1 items-center justify-center px-4 pb-12 pt-24 md:pt-28">
                 <div className="w-full max-w-md">
-                    <div className="mb-8 text-center">
-                        <Link href="/" className="font-heading text-4xl text-foreground-950">
-                            Ounce
-                        </Link>
-                        <p className="mt-2 text-sm text-foreground-500">한 사람을 위한 완벽한 한 끼</p>
-                    </div>
-
                     <div className="rounded-2xl border border-background-200 bg-white p-8 shadow-sm md:p-10">
                         <div className="mb-8">
                             <h1 className="text-2xl font-bold text-foreground-950">로그인</h1>

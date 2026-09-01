@@ -31,7 +31,8 @@ export default function Navbar() {
     const { user, isAuthenticated, isAdmin, logout } = useAuth();
     const { count: cartCount } = useCart();
     const displayName = user?.email ? user.email.split("@")[0] : "사용자";
-    const hidden = pathname.startsWith("/admin") || pathname === "/login" || pathname === "/signup";
+    const hidden = pathname.startsWith("/admin");
+    const isAuthPage = pathname === "/login" || pathname === "/signup";
     const isTimeDeal = pathname === "/timedeal";
 
     const [mobileOpen, setMobileOpen] = useState(false);
@@ -113,7 +114,108 @@ export default function Navbar() {
     const ariaCurrent = (href: string) =>
         currentPath === href ? ("page" as const) : undefined;
 
+    const searchOverlayTop = isAuthPage ? "top-16 md:top-20" : "top-20 md:top-24";
+    const searchOverlay = searchMounted && (
+        <div
+            onClick={(e) => {
+                if (e.target === e.currentTarget) closeSearch();
+            }}
+            className={`fixed ${searchOverlayTop} left-0 right-0 bottom-0 z-40 bg-foreground-950/40 transition-opacity duration-200 ${
+                searchVisible ? "" : "opacity-0"
+            }`}
+        >
+            <div className="w-full px-4 flex justify-center pt-6 md:pt-8">
+                <div
+                    className={`w-full max-w-2xl transition-transform duration-200 ${
+                        searchVisible ? "" : "-translate-y-3"
+                    }`}
+                >
+                    <div className="flex items-center gap-3 bg-white rounded-2xl shadow-2xl ring-1 ring-background-200 px-5 py-4 focus-within:ring-2 focus-within:ring-primary-500/40 transition-all">
+                        <button
+                            type="button"
+                            onClick={closeSearch}
+                            className="text-foreground-400 hover:text-foreground-700 transition-colors shrink-0"
+                            aria-label="뒤로"
+                        >
+                            <i className="ri-arrow-left-line text-xl" />
+                        </button>
+                        <input
+                            ref={searchInputRef}
+                            type="text"
+                            value={keyword}
+                            onChange={(e) => setKeyword(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") submitSearch();
+                            }}
+                            placeholder="밀키트를 검색해보세요"
+                            autoComplete="off"
+                            className="flex-1 bg-transparent text-base text-foreground-950 placeholder-foreground-400 focus:outline-none"
+                        />
+                        <button
+                            type="button"
+                            onClick={closeSearch}
+                            className="text-foreground-400 hover:text-foreground-700 transition-colors shrink-0 md:hidden"
+                            aria-label="닫기"
+                        >
+                            <i className="ri-close-line text-2xl" />
+                        </button>
+                    </div>
+
+                    <div className="mt-3 bg-white/95 backdrop-blur rounded-2xl shadow-xl ring-1 ring-background-200 px-5 py-4">
+                        <p className="text-[11px] font-semibold text-foreground-400 tracking-wider uppercase mb-3">
+                            추천 검색어
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {SUGGESTED_KEYWORDS.map((k) => (
+                                <Link
+                                    key={k}
+                                    href={`/products?keyword=${encodeURIComponent(k)}`}
+                                    className="px-3 py-1.5 text-sm text-foreground-600 bg-background-100/70 hover:bg-primary-500 hover:text-white rounded-full transition-colors"
+                                >
+                                    {k}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
     if (hidden) return null;
+
+    if (isAuthPage) {
+        return (
+            <nav className="fixed left-0 right-0 top-0 z-50 border-b border-background-200/70 bg-background-cream/95 backdrop-blur-md">
+                <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:h-20 md:px-8 lg:px-12">
+                    <Link href="/" className="flex shrink-0 items-center gap-2">
+                        <span className="font-heading text-xl font-semibold tracking-tight text-foreground-950 md:text-2xl">
+                            Ounce
+                        </span>
+                    </Link>
+
+                    <div className="flex items-center gap-2 sm:gap-3">
+                        <Link
+                            href="/products"
+                            className="inline-flex h-9 items-center rounded-md border border-background-200 bg-white px-3 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:text-sm"
+                        >
+                            <span className="sm:hidden">밀키트</span>
+                            <span className="hidden sm:inline">밀키트 보러가기</span>
+                        </Link>
+                        <button
+                            type="button"
+                            onClick={openSearch}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-md text-foreground-700 transition-colors hover:text-primary-500"
+                            aria-label="검색"
+                        >
+                            <i className="ri-search-line text-xl" />
+                        </button>
+                    </div>
+                </div>
+                {searchOverlay}
+            </nav>
+        );
+    }
 
     return (
         <nav
@@ -413,73 +515,7 @@ export default function Navbar() {
                 </div>
             )}
 
-            {/* 검색 오버레이 */}
-            {searchMounted && (
-                <div
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget) closeSearch();
-                    }}
-                    className={`fixed top-20 md:top-24 left-0 right-0 bottom-0 z-40 bg-foreground-950/40 transition-opacity duration-200 ${
-                        searchVisible ? "" : "opacity-0"
-                    }`}
-                >
-                    <div className="w-full px-4 flex justify-center pt-6 md:pt-8">
-                        <div
-                            className={`w-full max-w-2xl transition-transform duration-200 ${
-                                searchVisible ? "" : "-translate-y-3"
-                            }`}
-                        >
-                            <div className="flex items-center gap-3 bg-white rounded-2xl shadow-2xl ring-1 ring-background-200 px-5 py-4 focus-within:ring-2 focus-within:ring-primary-500/40 transition-all">
-                                <button
-                                    type="button"
-                                    onClick={closeSearch}
-                                    className="text-foreground-400 hover:text-foreground-700 transition-colors shrink-0"
-                                    aria-label="뒤로"
-                                >
-                                    <i className="ri-arrow-left-line text-xl" />
-                                </button>
-                                <input
-                                    ref={searchInputRef}
-                                    type="text"
-                                    value={keyword}
-                                    onChange={(e) => setKeyword(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter") submitSearch();
-                                    }}
-                                    placeholder="밀키트를 검색해보세요"
-                                    autoComplete="off"
-                                    className="flex-1 bg-transparent text-base text-foreground-950 placeholder-foreground-400 focus:outline-none"
-                                />
-                                <button
-                                    type="button"
-                                    onClick={closeSearch}
-                                    className="text-foreground-400 hover:text-foreground-700 transition-colors shrink-0 md:hidden"
-                                    aria-label="닫기"
-                                >
-                                    <i className="ri-close-line text-2xl" />
-                                </button>
-                            </div>
-
-                            <div className="mt-3 bg-white/95 backdrop-blur rounded-2xl shadow-xl ring-1 ring-background-200 px-5 py-4">
-                                <p className="text-[11px] font-semibold text-foreground-400 tracking-wider uppercase mb-3">
-                                    추천 검색어
-                                </p>
-                                <div className="flex flex-wrap gap-2">
-                                    {SUGGESTED_KEYWORDS.map((k) => (
-                                        <Link
-                                            key={k}
-                                            href={`/products?keyword=${encodeURIComponent(k)}`}
-                                            className="px-3 py-1.5 text-sm text-foreground-600 bg-background-100/70 hover:bg-primary-500 hover:text-white rounded-full transition-colors"
-                                        >
-                                            {k}
-                                        </Link>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+            {searchOverlay}
         </nav>
     );
 }

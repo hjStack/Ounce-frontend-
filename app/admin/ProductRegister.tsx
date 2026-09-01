@@ -1,8 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "../../components/AuthContext";
 import { useToast } from "../../components/ToastContext";
+import { prepareProductImage, readableFileSize } from "../../lib/product-images";
 import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
 import type { Product, ProductSliceResponse } from "../../types/api";
 
@@ -20,19 +22,6 @@ const INITIAL_FORM = {
     categoryIds: "",
     description: "",
 };
-
-const CHANGE_ACTIONS = [
-    { label: "가격 변경", icon: "ri-price-tag-3-line" },
-    { label: "할인율 변경", icon: "ri-percent-line" },
-    { label: "재고 변경", icon: "ri-stack-line" },
-    { label: "상태 변경", icon: "ri-toggle-line" },
-];
-
-const MAX_UPLOAD_IMAGE_BYTES = 900 * 1024;
-const MAX_ORIGINAL_IMAGE_BYTES = 10 * 1024 * 1024;
-const MAX_IMAGE_DIMENSION = 1200;
-const IMAGE_QUALITY_STEPS = [0.82, 0.72, 0.62, 0.52];
-const IMAGE_OUTPUT_TYPE = "image/webp";
 
 function parseCategoryIds(value: string) {
     return Array.from(
@@ -269,10 +258,6 @@ export default function ProductRegister() {
         } finally {
             setDeletingId(null);
         }
-    };
-
-    const showChangeReadyToast = (label: string, product: Product) => {
-        toast(`${product.name} ${label} 버튼입니다. 수정 API 연결 전입니다.`);
     };
 
     if (authLoading) {
@@ -530,17 +515,13 @@ export default function ProductRegister() {
                                         </td>
                                         <td className="px-5 py-3">
                                             <div className="flex flex-wrap justify-end gap-1.5">
-                                                {CHANGE_ACTIONS.map((action) => (
-                                                    <button
-                                                        key={action.label}
-                                                        type="button"
-                                                        onClick={() => showChangeReadyToast(action.label, product)}
-                                                        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 transition-colors hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
-                                                    >
-                                                        <i className={`${action.icon} text-sm`} />
-                                                        {action.label}
-                                                    </button>
-                                                ))}
+                                                <Link
+                                                    href={`/admin/products/${product.productId}/edit`}
+                                                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 transition-colors hover:border-primary-200 hover:bg-primary-50 hover:text-primary-700"
+                                                >
+                                                    <i className="ri-edit-line text-sm" />
+                                                    수정
+                                                </Link>
                                                 <button
                                                     type="button"
                                                     onClick={() => void deleteProduct(product)}
@@ -575,11 +556,6 @@ function Field({ label, required = false, children }: { label: string; required?
     );
 }
 
-function readableFileSize(bytes: number) {
-    if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)}MB`;
-    return `${Math.max(1, Math.round(bytes / 1024))}KB`;
-}
-
 function productCreateErrorMessage(status: number, message: string) {
     if (status === 413) return "이미지 용량이 너무 큽니다. 더 작은 이미지를 선택해주세요.";
     if (message.includes("Maximum upload size") || message.includes("FileSizeLimit")) {
@@ -597,89 +573,4 @@ async function readResponseMessage(response: Response) {
     } catch {
         return "";
     }
-}
-
-async function prepareProductImage(file: File) {
-    if (!file.type.startsWith("image/")) {
-        throw new Error("이미지 파일만 등록할 수 있습니다.");
-    }
-    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
-        throw new Error("JPG, PNG, WEBP 이미지만 등록할 수 있습니다.");
-    }
-    if (file.size > MAX_ORIGINAL_IMAGE_BYTES) {
-        throw new Error(`이미지는 ${readableFileSize(MAX_ORIGINAL_IMAGE_BYTES)} 이하만 등록할 수 있습니다.`);
-    }
-    if (file.size <= MAX_UPLOAD_IMAGE_BYTES) {
-        return ensureImageFileExtension(file);
-    }
-
-    return compressProductImage(file);
-}
-
-function ensureImageFileExtension(file: File) {
-    if (/\.(jpe?g|png|webp)$/i.test(file.name)) return file;
-
-    const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-    return new File([file], `${file.name || "product-image"}.${extension}`, { type: file.type, lastModified: file.lastModified });
-}
-
-async function compressProductImage(file: File) {
-    const image = await loadImage(file);
-    const ratio = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight));
-    const width = Math.max(1, Math.round(image.naturalWidth * ratio));
-    const height = Math.max(1, Math.round(image.naturalHeight * ratio));
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("이미지를 처리하지 못했습니다.");
-    context.drawImage(image, 0, 0, width, height);
-
-    for (const quality of IMAGE_QUALITY_STEPS) {
-        const blob = await canvasToBlob(canvas, IMAGE_OUTPUT_TYPE, quality);
-        if (blob.size <= MAX_UPLOAD_IMAGE_BYTES || quality === IMAGE_QUALITY_STEPS[IMAGE_QUALITY_STEPS.length - 1]) {
-            return new File([blob], `${filenameWithoutExtension(file.name) || "product-image"}.webp`, {
-                type: IMAGE_OUTPUT_TYPE,
-                lastModified: Date.now(),
-            });
-        }
-    }
-
-    return ensureImageFileExtension(file);
-}
-
-function loadImage(file: File) {
-    return new Promise<HTMLImageElement>((resolve, reject) => {
-        const image = new Image();
-        const url = URL.createObjectURL(file);
-
-        image.onload = () => {
-            URL.revokeObjectURL(url);
-            resolve(image);
-        };
-        image.onerror = () => {
-            URL.revokeObjectURL(url);
-            reject(new Error("이미지를 읽지 못했습니다. 다른 파일을 선택해주세요."));
-        };
-        image.src = url;
-    });
-}
-
-function canvasToBlob(canvas: HTMLCanvasElement, type: string, quality: number) {
-    return new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-            (blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error("이미지를 압축하지 못했습니다."));
-            },
-            type,
-            quality,
-        );
-    });
-}
-
-function filenameWithoutExtension(name: string) {
-    return name.replace(/\.[^.]+$/, "");
 }
