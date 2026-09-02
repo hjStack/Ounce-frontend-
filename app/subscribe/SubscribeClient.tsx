@@ -1,15 +1,49 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import Footer from "../../components/Footer";
+import { useAuth } from "../../components/AuthContext";
 import { useToast } from "../../components/ToastContext";
 import { fetchCatalog, PRODUCT_PLACEHOLDER, splitName } from "../../lib/products";
 import { MAX_MEALS, MIN_MEALS, planOf, storageDetail } from "../../lib/plan";
-import type { Product } from "../../types/api";
+import { clearLegacySubscriptionStore, isActiveSubscription, mealsPerWeekOf } from "../../lib/subscriptions";
+import type { Product, SubscriptionCreateRequest, SubscriptionResponse } from "../../types/api";
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+
+function dateInputValue(date: Date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function formatDateChoice(value: string) {
+    const date = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("ko-KR", { month: "long", day: "numeric", weekday: "short" }).format(date);
+}
+
+async function readApiMessage(response: Response, fallback: string) {
+    let text = "";
+    try {
+        text = await response.text();
+    } catch {
+        return fallback;
+    }
+
+    if (!text.trim()) return fallback;
+
+    try {
+        const data = JSON.parse(text) as { message?: unknown };
+        return typeof data.message === "string" && data.message.trim() ? data.message : text;
+    } catch {
+        return text;
+    }
+}
 
 function pickSlots(products: Product[], count: number) {
     const pool = [...products];
@@ -22,16 +56,24 @@ function pickSlots(products: Product[], count: number) {
 }
 
 export default function SubscribeClient() {
+    const router = useRouter();
+    const { loading: authLoading, isAuthenticated } = useAuth();
     const { toast } = useToast();
     const [meals, setMeals] = useState(5);
     const [catalog, setCatalog] = useState<Product[]>([]);
     const [slots, setSlots] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
-    const [email, setEmail] = useState("");
-    const [privacyAgreed, setPrivacyAgreed] = useState(false);
+    const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+    const [subscriptionLoading, setSubscriptionLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
-    const [reserveMessage, setReserveMessage] = useState("");
+    const [minStartDate] = useState(() => dateInputValue(new Date()));
+    const [startDate, setStartDate] = useState(minStartDate);
     const selected = useMemo(() => planOf(meals), [meals]);
+    const startDateLabel = useMemo(() => formatDateChoice(startDate), [startDate]);
+
+    useEffect(() => {
+        clearLegacySubscriptionStore();
+    }, []);
 
     useEffect(() => {
         fetchCatalog(80)
@@ -48,31 +90,87 @@ export default function SubscribeClient() {
         setSlots(pickSlots(catalog, selected.meals));
     };
 
-    const submitReservation = async (event: FormEvent<HTMLFormElement>) => {
+    useEffect(() => {
+        if (authLoading || !isAuthenticated) return;
+
+        let ignore = false;
+        setSubscriptionLoading(true);
+
+        fetch("/api/subscriptions/me", { credentials: "include" })
+            .then(async (response) => {
+                if (response.status === 404 || response.status === 401 || response.status === 403) return null;
+                if (!response.ok) throw new Error("SUBSCRIPTION_FAILED");
+                return (await response.json()) as SubscriptionResponse;
+            })
+            .then((data) => {
+                if (ignore) return;
+                setSubscription(data);
+                if (data && isActiveSubscription(data)) setMeals(mealsPerWeekOf(data));
+            })
+            .catch(() => undefined)
+            .finally(() => {
+                if (!ignore) setSubscriptionLoading(false);
+            });
+
+        return () => {
+            ignore = true;
+        };
+    }, [authLoading, isAuthenticated]);
+
+    const submitSubscription = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        const nextEmail = email.trim();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(nextEmail)) {
-            setReserveMessage("이메일 주소를 다시 확인해 주세요.");
+
+        if (authLoading) return;
+        if (!isAuthenticated) {
+            toast("로그인 후 구독을 신청할 수 있습니다.", "error");
+            router.push("/login");
             return;
         }
-        if (!privacyAgreed) {
-            setReserveMessage("오픈 알림 수신 및 개인정보 수집 동의가 필요합니다.");
+
+        if (subscription && isActiveSubscription(subscription)) {
+            router.push("/subscription");
+            return;
+        }
+
+        if (!startDate) {
+            toast("구독 시작일을 선택해주세요.", "error");
+            return;
+        }
+
+        if (startDate < minStartDate) {
+            toast("구독 시작일은 오늘 이후로 선택해주세요.", "error");
             return;
         }
 
         setSubmitting(true);
-        setReserveMessage("접수 중입니다.");
         try {
-            const res = await fetch("/api/subscriptions/reservations", {
+            const request: SubscriptionCreateRequest = { mealsPerWeek: selected.meals, startDate };
+            const response = await fetch("/api/subscriptions", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ email: nextEmail }),
+                body: JSON.stringify(request),
             });
-            if (!res.ok) throw new Error("RESERVATION_FAILED");
-            setReserveMessage(`사전 예약이 접수됐습니다. 오픈하면 ${nextEmail} 로 알려드릴게요.`);
+
+            if (response.status === 401 || response.status === 403) {
+                toast("로그인 후 구독을 신청할 수 있습니다.", "error");
+                router.push("/login");
+                return;
+            }
+            if (response.status === 409) {
+                toast("이미 이용 중인 구독이 있습니다.");
+                router.push("/subscription");
+                return;
+            }
+            if (!response.ok) {
+                toast(await readApiMessage(response, "구독 신청에 실패했습니다."), "error");
+                return;
+            }
+
+            toast(`${startDateLabel || startDate}부터 주 ${selected.meals}끼 구독이 시작되었습니다.`);
+            router.push("/subscription");
         } catch {
-            setReserveMessage("지금은 접수가 되지 않습니다. 잠시 후 다시 시도해 주세요.");
+            toast("서버와 통신 중 문제가 발생했습니다.", "error");
         } finally {
             setSubmitting(false);
         }
@@ -105,7 +203,7 @@ export default function SubscribeClient() {
                             <Benefit icon="ri-coupon-3-line" title="4주 유지 쿠폰" text="4주 연속 구독을 유지하면 무료배송 쿠폰을 발급합니다." />
                         </ul>
 
-                        <p className="text-xs leading-relaxed text-foreground-400">Ounce 구독은 정식 오픈 준비 중입니다. 지금은 사전 예약만 받고 있어요.</p>
+                        <p className="text-xs leading-relaxed text-foreground-400">신청하면 로그인한 계정의 구독 정보로 바로 반영됩니다.</p>
                     </div>
 
                     <div className="w-full md:sticky md:top-28 md:w-1/2">
@@ -151,52 +249,53 @@ export default function SubscribeClient() {
                             </div>
                             <p className="mb-6 text-xs leading-relaxed text-foreground-500">{storageDetail(selected.meals)}</p>
 
-                            <div className="rounded-xl bg-foreground-950 p-5 text-white">
+                            <div className="mb-4 rounded-xl border border-background-200 bg-background-50 px-4 py-3.5">
+                                <label htmlFor="subscription-start-date" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                    <span>
+                                        <span className="block text-sm font-bold text-foreground-950">구독 시작일</span>
+                                        <span className="mt-1 block text-xs text-foreground-500">
+                                            {startDateLabel ? `${startDateLabel}부터 시작` : "시작할 날짜를 선택해주세요"}
+                                        </span>
+                                    </span>
+                                    <input
+                                        id="subscription-start-date"
+                                        type="date"
+                                        value={startDate}
+                                        min={minStartDate}
+                                        onChange={(event) => setStartDate(event.target.value)}
+                                        className="h-10 w-full rounded-lg border border-background-200 bg-white px-3 text-sm font-semibold text-foreground-800 outline-none transition-colors focus:border-primary-500 sm:w-auto"
+                                    />
+                                </label>
+                            </div>
+
+                            <form className="rounded-xl bg-foreground-950 p-5 text-white" onSubmit={submitSubscription}>
                                 <div className="mb-3 flex items-center justify-between">
                                     <div>
-                                        <p className="text-xs text-white/45">사전 예약</p>
-                                        <h3 className="mt-1 text-lg font-bold">오픈 알림 받기</h3>
+                                        <p className="text-xs text-white/45">구독 신청</p>
+                                        <h3 className="mt-1 text-lg font-bold">주 {selected.meals}끼로 시작하기</h3>
                                     </div>
-                                    <i className="ri-mail-send-line text-2xl text-primary-300" />
+                                    <i className="ri-calendar-check-line text-2xl text-primary-300" />
                                 </div>
-                                <form className="flex flex-col gap-3" onSubmit={submitReservation} noValidate>
-                                    <div className="flex gap-2">
-                                        <input
-                                            type="email"
-                                            value={email}
-                                            onChange={(event) => setEmail(event.target.value)}
-                                            placeholder="email@example.com"
-                                            className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/10 px-3.5 py-3 text-sm text-white outline-none placeholder:text-white/35 focus:border-primary-300"
-                                            aria-describedby="subscription-privacy-notice"
-                                        />
-                                        <button
-                                            type="submit"
-                                            disabled={submitting}
-                                            className="shrink-0 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
-                                        >
-                                            예약
-                                        </button>
-                                    </div>
-                                    <p id="subscription-privacy-notice" className="text-[11px] leading-relaxed text-white/45">
-                                        수집 항목: 이메일 · 이용 목적: 구독 오픈 알림 발송 · 보유기간: 알림 발송 후 30일 또는 동의 철회 시까지
-                                    </p>
-                                    <label className="flex cursor-pointer items-start gap-2.5 text-xs leading-relaxed text-white/70">
-                                        <input
-                                            type="checkbox"
-                                            checked={privacyAgreed}
-                                            onChange={(event) => setPrivacyAgreed(event.target.checked)}
-                                            className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer accent-[#447861]"
-                                        />
-                                        <span>
-                                            오픈 알림 수신 및 개인정보 수집에 동의합니다.{" "}
-                                            <Link href="/policy.html" className="font-semibold text-primary-200 underline underline-offset-2 hover:text-primary-100">
-                                                개인정보처리방침
-                                            </Link>
-                                        </span>
-                                    </label>
-                                </form>
-                                {reserveMessage && <p className="mt-3 text-xs leading-relaxed text-white/70">{reserveMessage}</p>}
-                            </div>
+                                <p className="mb-4 text-xs leading-relaxed text-white/60">
+                                    로그인한 계정으로 구독이 생성됩니다. 이후 내 구독 화면에서 끼니 수를 바꾸거나 해지할 수 있습니다.
+                                </p>
+                                <button
+                                    type="submit"
+                                    disabled={submitting || authLoading || subscriptionLoading}
+                                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
+                                >
+                                    <i className={isAuthenticated ? "ri-check-line" : "ri-login-box-line"} />
+                                    {submitting
+                                        ? "신청 중..."
+                                        : subscriptionLoading
+                                          ? "구독 확인 중..."
+                                          : subscription && isActiveSubscription(subscription)
+                                            ? "내 구독 보기"
+                                            : isAuthenticated
+                                              ? "구독 신청하기"
+                                              : "로그인하고 신청하기"}
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </section>

@@ -6,6 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "./AuthContext";
 import { useCart } from "./CartContext";
 import { CATEGORIES } from "../lib/products";
+import { subscriptionStatus } from "../lib/subscriptions";
+import type { SubscriptionResponse } from "../types/api";
 
 /* 원본은 데스크탑이 ?categories= , 모바일이 ?cat= 을 써서 서로 달랐음.
    서버 컨트롤러가 받는 파라미터명으로 아래 상수만 맞추면 됨. */
@@ -20,6 +22,20 @@ const DESKTOP_LINK =
 const DESKTOP_LINK_ACTIVE =
     "text-sm font-bold text-foreground-950 transition-colors whitespace-nowrap";
 
+async function readSubscriptionHistory(response: Response) {
+    if (!response.ok) return [];
+
+    try {
+        const data = (await response.json()) as SubscriptionResponse[] | { content?: SubscriptionResponse[]; items?: SubscriptionResponse[] };
+        if (Array.isArray(data)) return data;
+        if (Array.isArray(data.content)) return data.content;
+        if (Array.isArray(data.items)) return data.items;
+        return [];
+    } catch {
+        return [];
+    }
+}
+
 export default function Navbar() {
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -33,10 +49,12 @@ export default function Navbar() {
     const displayName = user?.email ? user.email.split("@")[0] : "사용자";
     const hidden = pathname.startsWith("/admin");
     const isAuthPage = pathname === "/login" || pathname === "/signup";
+    const isSignupPage = pathname === "/signup";
     const isTimeDeal = pathname === "/timedeal";
 
     const [mobileOpen, setMobileOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [subscriptionNavLoading, setSubscriptionNavLoading] = useState(false);
     const userMenuWrapRef = useRef<HTMLDivElement>(null);
 
     const [searchMounted, setSearchMounted] = useState(false);
@@ -100,6 +118,64 @@ export default function Navbar() {
         await logout();
         router.push("/");
         router.refresh();
+    };
+
+    const openSubscriptionEntry = async () => {
+        setMobileOpen(false);
+        setUserMenuOpen(false);
+
+        if (!isAuthenticated) {
+            router.push("/subscribe");
+            return;
+        }
+
+        setSubscriptionNavLoading(true);
+        try {
+            const response = await fetch("/api/subscriptions/me", { credentials: "include" });
+            const sendToSubscribe = () => {
+                router.push("/subscribe");
+            };
+
+            if (response.status === 401 || response.status === 403) {
+                router.push("/login");
+                return;
+            }
+
+            if (response.status === 404) {
+                sendToSubscribe();
+                return;
+            }
+
+            if (!response.ok) {
+                const historyResponse = await fetch("/api/subscriptions/me/history", { credentials: "include" });
+                if (historyResponse.status === 401 || historyResponse.status === 403) {
+                    router.push("/login");
+                    return;
+                }
+
+                const history = await readSubscriptionHistory(historyResponse);
+                const hasActiveSubscription = history.some((item) => subscriptionStatus(item) === "ACTIVE");
+                if (hasActiveSubscription) {
+                    router.push("/subscription");
+                    return;
+                }
+
+                sendToSubscribe();
+                return;
+            }
+
+            const subscription = (await response.json()) as SubscriptionResponse;
+            if (subscriptionStatus(subscription) === "CANCELED") {
+                router.push("/subscribe");
+                return;
+            }
+
+            router.push("/subscription");
+        } catch {
+            router.push("/subscription");
+        } finally {
+            setSubscriptionNavLoading(false);
+        }
     };
 
     const linkClass = (href: string) => {
@@ -195,13 +271,15 @@ export default function Navbar() {
                     </Link>
 
                     <div className="flex items-center gap-2 sm:gap-3">
-                        <Link
-                            href="/products"
-                            className="inline-flex h-9 items-center rounded-md border border-background-200 bg-white px-3 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:text-sm"
-                        >
-                            <span className="sm:hidden">밀키트</span>
-                            <span className="hidden sm:inline">밀키트 보러가기</span>
-                        </Link>
+                        {!isSignupPage && (
+                            <Link
+                                href="/products"
+                                className="inline-flex h-9 items-center rounded-md border border-background-200 bg-white px-3 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:text-sm"
+                            >
+                                <span className="sm:hidden">밀키트</span>
+                                <span className="hidden sm:inline">밀키트 보러가기</span>
+                            </Link>
+                        )}
                         <button
                             type="button"
                             onClick={openSearch}
@@ -305,12 +383,14 @@ export default function Navbar() {
 
                                 {userMenuOpen && (
                                     <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-background-200 rounded-xl shadow-lg overflow-hidden z-50 py-1">
-                                        <Link
-                                            href="/subscription"
-                                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground-700 hover:bg-background-100 transition-colors"
+                                        <button
+                                            type="button"
+                                            onClick={() => void openSubscriptionEntry()}
+                                            disabled={subscriptionNavLoading}
+                                            className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left text-sm text-foreground-700 transition-colors hover:bg-background-100 disabled:cursor-wait disabled:opacity-50"
                                         >
-                                            <i className="ri-calendar-check-line text-foreground-400 text-base" /> 내 구독
-                                        </Link>
+                                            <i className="ri-calendar-check-line text-foreground-400 text-base" /> {subscriptionNavLoading ? "확인 중..." : "내 구독"}
+                                        </button>
                                         <Link
                                             href="/account"
                                             className="flex items-center gap-3 px-4 py-2.5 text-sm text-foreground-700 hover:bg-background-100 transition-colors"
@@ -410,18 +490,20 @@ export default function Navbar() {
             {mobileOpen && (
                 <div className="md:hidden bg-background-50/98 backdrop-blur-md border-t border-background-200 shadow-lg">
                     <div className="px-4 py-5">
-                        <Link
-                            href={showAuthenticated ? "/subscription" : "/subscribe"}
-                            className="flex items-center justify-between gap-3 px-4 py-3.5 mb-5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-colors"
+                        <button
+                            type="button"
+                            onClick={() => void openSubscriptionEntry()}
+                            disabled={subscriptionNavLoading}
+                            className="mb-5 flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl bg-primary-500 px-4 py-3.5 text-white transition-colors hover:bg-primary-600 disabled:cursor-wait disabled:opacity-70"
                         >
               <span className="flex items-center gap-2.5 text-sm font-semibold">
                 <i className="ri-calendar-check-line text-lg" />
-                  {showAuthenticated ? "내 구독" : "구독 시작"}
+                  {subscriptionNavLoading ? "확인 중..." : showAuthenticated ? "내 구독" : "구독 시작"}
               </span>
                             <span className="text-[11px] text-white/70">
                 {showAuthenticated ? "이번 주 메뉴 바꾸기" : "한 주 저녁 미리 정하기"}
               </span>
-                        </Link>
+                        </button>
 
                         <p className="px-1 mb-2 text-[11px] font-semibold text-foreground-400 tracking-wider uppercase">
                             둘러보기

@@ -6,6 +6,10 @@ export interface Member {
     name?: string;
     point?: number;
     grade?: string;
+    createdAt?: string;
+    createdDate?: string;
+    created_at?: string;
+    joinedAt?: string;
     role?: string;
     authority?: string;
     authorities?: RoleClaim[];
@@ -129,8 +133,114 @@ export interface PageResponse<T> {
     last?: boolean;
 }
 
+export interface OrderItem {
+    orderItemId?: number;
+    productId?: number;
+    productName?: string;
+    name?: string;
+    quantity?: number;
+    price?: number;
+    unitPrice?: number;
+    totalPrice?: number;
+    imageUrl?: string | null;
+}
+
 export interface Order {
     orderId: number;
+    orderNumber?: string;
+    memberId?: number;
+    memberName?: string;
+    memberEmail?: string;
+    email?: string;
+    receiverName?: string;
+    receiverPhone?: string;
+    shippingAddress?: string;
+    address?: string;
+    memo?: string | null;
+    shippingFee?: number | null;
+    discountAmount?: number | null;
+    amount?: number | null;
+    orderAmount?: number | null;
+    finalAmount?: number | null;
+    productAmount?: number | null;
+    paymentAmount?: number | null;
     totalAmount: number;
     status: string;
+    createdAt?: string;
+    createdDate?: string;
+    created_at?: string;
+    orderDate?: string;
+    orderedAt?: string;
+    ordered_at?: string;
+    paidAt?: string | null;
+    paid_at?: string | null;
+    shippedAt?: string | null;
+    deliveredAt?: string | null;
+    updatedAt?: string | null;
+    items?: OrderItem[];
+    orderItems?: OrderItem[];
+    products?: OrderItem[];
+}
+
+export interface AdminMember extends Member {
+    phone?: string;
+    nickname?: string;
+    status?: string;
+    provider?: string;
+    address?: string | null;
+    defaultAddress?: string | null;
+    createdAt?: string;
+    createdDate?: string;
+    created_at?: string;
+    joinedAt?: string;
+    updatedAt?: string | null;
+    lastLoginAt?: string | null;
+    lastLoginDate?: string | null;
+    orderCount?: number;
+    totalOrderCount?: number;
+    totalSpent?: number;
+    totalSpentAmount?: number;
+    totalPaymentAmount?: number;
+    couponCount?: number;
+    availableCouponCount?: number;
+}
+
+export interface SubscriptionCreateRequest {
+    mealsPerWeek: number;
+    startDate: string;
+}
+
+export interface SubscriptionResponse {
+    subscriptionId?: number;
+    id?: number;
+    subscription_id?: number;
+    memberId?: number;
+    memberEmail?: string;
+    email?: string;
+    mealsPerWeek?: number;
+    meals_per_week?: number;
+    weeklyMeals?: number;
+    weeklyMealCount?: number;
+    planMeals?: number;
+    meals?: number;
+    status?: string;
+    createdAt?: string;
+    createdDate?: string;
+    created_at?: string;
+    startedAt?: string;
+    startDate?: string;
+    subscribedAt?: string;
+    updatedAt?: string | null;
+    canceledAt?: string | null;
+    cancelledAt?: string | null;
+    cancelDate?: string | null;
+    nextDeliveryDate?: string | null;
+    nextPaymentDate?: string | null;
+    deliveryDay?: string | null;
+    maintainedWeeks?: number | null;
+    continuousWeeks?: number | null;
+    freeShippingCouponIssued?: boolean | null;
+    weeklyAmount?: number | null;
+    subscriptionFee?: number | null;
+    totalAmount?: number | null;
 }

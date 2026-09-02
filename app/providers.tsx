@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { AuthProvider } from "../components/AuthContext";
 import { CartProvider } from "../components/CartContext";
+import SignupBenefitToast from "../components/SignupBenefitToast";
 import { ToastProvider } from "../components/ToastContext";
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -10,6 +11,7 @@ export default function Providers({ children }: { children: ReactNode }) {
         <ToastProvider>
             <AuthProvider>
                 <CartProvider>{children}</CartProvider>
+                <SignupBenefitToast />
             </AuthProvider>
         </ToastProvider>
     );

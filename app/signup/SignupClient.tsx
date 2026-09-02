@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Footer from "../../components/Footer";
 import { useToast } from "../../components/ToastContext";
+import { markSignupBenefitToastPending } from "../../lib/signup-benefits";
 
 interface Errors {
     name?: string;
@@ -65,6 +66,7 @@ export default function SignupClient() {
             });
 
             if (response.ok || response.status === 201) {
+                markSignupBenefitToastPending("expected");
                 router.push("/login?welcome=true");
             } else if (response.status === 400 || response.status === 409) {
                 const data = (await response.json().catch(() => null)) as { message?: string } | null;
@@ -86,51 +88,49 @@ export default function SignupClient() {
         <div className="flex min-h-screen flex-col bg-background-100">
             <main className="flex flex-1 justify-center px-4 pb-12 pt-24 md:pt-28">
                 <div className="w-full max-w-xl">
-                    <div className="overflow-hidden rounded-2xl border border-background-200 bg-white shadow-sm">
-                        <div className="border-b border-primary-100 bg-primary-50/80 p-5 md:p-6">
-                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                                <div>
-                                    <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[11px] font-extrabold text-primary-700">
-                                        <i className="ri-time-line text-sm" />
-                                        오픈 3주 한정
-                                    </span>
-                                    <h2 className="mt-3 break-keep text-xl font-black leading-tight text-foreground-950">
-                                        회원가입하면 첫 구매 배송비 0원
-                                    </h2>
-                                    <p className="mt-2 break-keep text-sm leading-5 text-foreground-500">
-                                        가입 완료 후 1,000P와 무료배송 쿠폰이 함께 지급돼요.
-                                    </p>
-                                </div>
-
-                                <div className="flex shrink-0 items-center justify-between rounded-lg bg-primary-500 px-4 py-3 text-white shadow-sm sm:w-28 sm:flex-col sm:justify-center sm:py-4">
-                                    <span className="text-[11px] font-bold text-white/75">배송비</span>
-                                    <strong className="text-2xl font-black leading-none">0원</strong>
-                                    <span className="hidden text-[10px] font-bold text-white/75 sm:block">FREE</span>
-                                </div>
+                    <section className="mb-4 rounded-2xl border border-primary-100 bg-primary-50 p-5 shadow-sm md:p-6">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                                <span className="inline-flex items-center gap-1.5 rounded-md bg-white px-2.5 py-1 text-[11px] font-extrabold text-primary-700">
+                                    <i className="ri-gift-line text-sm" />
+                                    회원 상시 혜택
+                                </span>
+                                <h2 className="mt-3 break-keep text-xl font-black leading-tight text-foreground-950">
+                                    가입하면 바로 쓰는 1,000P
+                                </h2>
+                                <p className="mt-2 break-keep text-sm leading-6 text-foreground-600">
+                                    첫 구매 무료배송 쿠폰도 함께 지급되고, 4주 연속 구독을 유지하면 무료배송 쿠폰을 추가로 드립니다.
+                                </p>
                             </div>
-
-                            <div className="mt-4 grid gap-2 text-[11px] font-bold text-foreground-600 sm:grid-cols-3">
-                                <span className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-2">
-                                    <i className="ri-coupon-3-line text-primary-600" />
-                                    첫 구매 전용
-                                </span>
-                                <span className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-2">
-                                    <i className="ri-gift-line text-primary-600" />
-                                    가입 1,000P
-                                </span>
-                                <span className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-2">
-                                    <i className="ri-loop-left-line text-primary-600" />
-                                    4주 유지 추가 쿠폰
-                                </span>
+                            <div className="flex shrink-0 items-center justify-between rounded-lg bg-primary-500 px-4 py-3 text-white shadow-sm sm:w-28 sm:flex-col sm:justify-center sm:py-4">
+                                <span className="text-[11px] font-bold text-white/75">가입 혜택</span>
+                                <strong className="text-2xl font-black leading-none">1,000P</strong>
+                                <span className="hidden text-[10px] font-bold text-white/75 sm:block">상시 지급</span>
                             </div>
-
-                            <p className="mt-3 flex items-center gap-1.5 break-keep text-[11px] font-bold text-primary-700">
-                                <i className="ri-truck-line text-sm" />
-                                3만원 이상 주문은 언제나 무료배송
-                            </p>
                         </div>
 
-                        <div id="signup-form" className="scroll-mt-24 p-8 md:p-10">
+                        <div className="mt-4 grid gap-2 text-[11px] font-bold text-foreground-700 sm:grid-cols-3">
+                            <span className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-2">
+                                <i className="ri-coin-line text-primary-600" />
+                                가입 즉시 1,000P
+                            </span>
+                            <span className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-2">
+                                <i className="ri-truck-line text-primary-600" />
+                                첫 구매 무료배송
+                            </span>
+                            <span className="flex items-center gap-1.5 rounded-md bg-white px-2.5 py-2">
+                                <i className="ri-loop-left-line text-primary-600" />
+                                4주 유지 추가 쿠폰
+                            </span>
+                        </div>
+
+                        <p className="mt-3 flex items-center gap-1.5 break-keep text-[11px] font-bold text-primary-700">
+                            <i className="ri-check-line text-sm" />
+                            이벤트 기간과 상관없이 계속 적용되는 혜택입니다.
+                        </p>
+                    </section>
+
+                    <div id="signup-form" className="scroll-mt-24 rounded-2xl border border-background-200 bg-white p-8 shadow-sm md:p-10">
                             <div className="mb-8">
                                 <h1 className="text-2xl font-bold text-foreground-950">회원가입</h1>
                                 <p className="mt-1 text-sm text-foreground-500">Ounce의 회원이 되어 특별한 혜택을 받아보세요</p>
@@ -192,6 +192,7 @@ export default function SignupClient() {
 
                             <a
                                 href="/oauth2/authorization/google"
+                                onClick={() => markSignupBenefitToastPending("check")}
                                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-background-200 py-3 text-sm font-medium text-foreground-700 transition-colors hover:bg-background-50"
                             >
                                 <i className="ri-google-fill text-base" /> Google로 계속하기
@@ -206,7 +207,6 @@ export default function SignupClient() {
                                 </p>
                             </div>
                         </div>
-                    </div>
                 </div>
             </main>
             <Footer />

@@ -7,6 +7,7 @@ import type { FormEvent } from "react";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
 import { useToast } from "../../components/ToastContext";
+import { markSignupBenefitToastPending, readSignupBenefitToastMode } from "../../lib/signup-benefits";
 
 const LOGIN_FAILED_MESSAGE = "이메일 또는 비밀번호가 올바르지 않습니다.";
 const WITHDRAWN_MESSAGE = "이미 탈퇴한 계정이에요. 새로 가입하시려면 회원가입을 이용해주세요.";
@@ -28,7 +29,8 @@ export default function LoginClient() {
 
     useEffect(() => {
         if (searchParams.get("welcome") === "true") {
-            toast("가입을 환영합니다! 1,000P와 첫 구매 무료배송 쿠폰이 준비됐어요.");
+            markSignupBenefitToastPending("expected");
+            toast("가입이 완료됐습니다. 로그인하면 혜택을 확인할 수 있어요.");
         }
     }, [searchParams, toast]);
 
@@ -78,7 +80,9 @@ export default function LoginClient() {
             const isLoginSuccess = response.ok && !response.redirected && !contentType.includes("text/html");
 
             if (isLoginSuccess) {
-                toast("오늘도 맛있는 하루! Ounce와 함께 열어볼까요?");
+                if (!readSignupBenefitToastMode()) {
+                    toast("오늘도 맛있는 하루! Ounce와 함께 열어볼까요?");
+                }
                 await refresh();
                 window.setTimeout(() => router.push("/"), 700);
             } else {
@@ -160,6 +164,7 @@ export default function LoginClient() {
 
                         <a
                             href="/oauth2/authorization/google"
+                            onClick={() => markSignupBenefitToastPending("check")}
                             className="flex w-full items-center justify-center gap-2 rounded-lg border border-background-200 py-3 text-sm font-medium text-foreground-700 transition-colors hover:bg-background-50"
                         >
                             <i className="ri-google-fill text-base" /> Google로 계속하기
