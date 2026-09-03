@@ -207,7 +207,88 @@ export interface AdminMember extends Member {
 
 export interface SubscriptionCreateRequest {
     mealsPerWeek: number;
-    startDate: string;
+    selection: SubscriptionSelection;
+}
+
+export type SubscriptionSelection = Record<string, number>;
+
+export interface SubscriptionSelectionItem {
+    productId: number;
+    quantity: number;
+}
+
+export interface SubscriptionChangeMealsRequest {
+    mealsPerWeek: number;
+}
+
+export interface SubscriptionChangeMenuRequest {
+    selection: SubscriptionSelection;
+}
+
+export interface SubscriptionPauseRequest {
+    resumeDate: string;
+}
+
+export interface SubscriptionCheckoutResponse {
+    outcome?: string;
+    message?: string;
+    subscription?: SubscriptionResponse;
+    detail?: SubscriptionResponse;
+    data?: SubscriptionResponse;
+}
+
+export interface SubscriptionWeeklyMenuItem {
+    productId?: number;
+    product_id?: number;
+    id?: number;
+    quantity?: number;
+    count?: number;
+    product?: Product;
+}
+
+export interface SubscriptionWeeklyMenuResponse {
+    deliveryDate?: string | null;
+    productIds?: number[];
+    menuProductIds?: number[];
+    products?: Product[];
+    items?: SubscriptionWeeklyMenuItem[];
+    menuItems?: SubscriptionWeeklyMenuItem[];
+}
+
+export interface SubscriptionWeeklyMenuUpdateRequest {
+    deliveryDate?: string | null;
+    productIds?: number[];
+    selection?: SubscriptionSelection;
+}
+
+export interface SubscriptionDeliveryDateUpdateRequest {
+    nextDeliveryDate: string;
+    deliveryDate: string;
+}
+
+export interface SubscriptionCycle {
+    cycleId?: number;
+    id?: number;
+    subscriptionCycleId?: number;
+    status?: string;
+    paymentStatus?: string;
+    deliveryStatus?: string;
+    billingDate?: string | null;
+    billingAt?: string | null;
+    paidAt?: string | null;
+    paymentTriedAt?: string | null;
+    deliveryDate?: string | null;
+    deliveredAt?: string | null;
+    skippedAt?: string | null;
+    failedAttempts?: number | null;
+    retryCount?: number | null;
+    amount?: number | null;
+    totalAmount?: number | null;
+    message?: string | null;
+    selection?: SubscriptionSelection | SubscriptionSelectionItem[];
+    menu?: SubscriptionWeeklyMenuItem[];
+    menuItems?: SubscriptionWeeklyMenuItem[];
+    products?: Product[];
 }
 
 export interface SubscriptionResponse {
@@ -224,23 +305,66 @@ export interface SubscriptionResponse {
     planMeals?: number;
     meals?: number;
     status?: string;
+    statusDescription?: string;
+    statusLabel?: string;
+    description?: string | null;
+    paymentStatus?: string;
+    checkoutStatus?: string;
+    active?: boolean | null;
+    chargeable?: boolean | null;
+    terminal?: boolean | null;
+    canceled?: boolean | null;
+    cancelled?: boolean | null;
+    deleted?: boolean | null;
     createdAt?: string;
     createdDate?: string;
     created_at?: string;
     startedAt?: string;
+    startedDate?: string;
+    startedOn?: string;
     startDate?: string;
+    startAt?: string;
+    subscriptionStartDate?: string;
     subscribedAt?: string;
     updatedAt?: string | null;
     canceledAt?: string | null;
     cancelledAt?: string | null;
+    canceledDate?: string | null;
+    cancelledDate?: string | null;
     cancelDate?: string | null;
+    canceledOn?: string | null;
+    cancelledOn?: string | null;
+    endedAt?: string | null;
+    deletedAt?: string | null;
     nextDeliveryDate?: string | null;
+    deliveryDate?: string | null;
     nextPaymentDate?: string | null;
+    nextBillingDate?: string | null;
+    nextBillingAt?: string | null;
+    billingDate?: string | null;
+    billingDeadlineAt?: string | null;
+    cutoffAt?: string | null;
+    menuEditableUntil?: string | null;
+    pausedUntil?: string | null;
+    pauseUntil?: string | null;
+    resumeDate?: string | null;
+    skipCancelable?: boolean;
     deliveryDay?: string | null;
     maintainedWeeks?: number | null;
     continuousWeeks?: number | null;
+    consecutiveSuccessPayments?: number | null;
+    successfulPaymentStreak?: number | null;
+    failedWeeks?: number | null;
+    paymentRetryCount?: number | null;
+    retryCount?: number | null;
+    consecutivePaymentFailures?: number | null;
     freeShippingCouponIssued?: boolean | null;
     weeklyAmount?: number | null;
     subscriptionFee?: number | null;
     totalAmount?: number | null;
+    selection?: SubscriptionSelection | SubscriptionSelectionItem[];
+    menu?: SubscriptionWeeklyMenuItem[];
+    menuItems?: SubscriptionWeeklyMenuItem[];
+    products?: Product[];
+    cycles?: SubscriptionCycle[];
 }

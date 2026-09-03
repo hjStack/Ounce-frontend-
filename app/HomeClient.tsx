@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import Footer from "../components/Footer";
 import ProductCard, { CategorySkeleton, ProductSkeleton } from "../components/ProductCard";
-import { useAuth } from "../components/AuthContext";
 import { LaunchCouponStrip } from "../components/LaunchFreeShippingCoupon";
 import { CATEGORIES, fetchCatalog, fetchCategoryCounts, PRODUCT_PLACEHOLDER } from "../lib/products";
 import type { Product } from "../types/api";
@@ -12,7 +11,6 @@ import type { Product } from "../types/api";
 const pad = (value: number) => String(value).padStart(2, "0");
 
 export default function HomeClient() {
-    const { isAuthenticated } = useAuth();
     const [countdown, setCountdown] = useState("--:--:--");
     const [menuCount, setMenuCount] = useState("–");
     const [products, setProducts] = useState<Product[]>([]);
@@ -60,10 +58,7 @@ export default function HomeClient() {
     return (
         <div className="bg-background-cream">
             <main className="pt-20 md:pt-24">
-                <LaunchCouponStrip
-                    href={isAuthenticated ? "/account#account-coupons" : "/signup"}
-                    ctaLabel={isAuthenticated ? "내 쿠폰 보기" : "쿠폰 발급받기"}
-                />
+                <LaunchCouponStrip href="/subscribe" ctaLabel="구독 시작하기" />
 
                 <section className="mx-auto flex w-full max-w-7xl flex-col items-center gap-12 px-6 pb-14 pt-8 md:flex-row md:px-8 md:pb-20 md:pt-12 lg:gap-20 lg:px-12">
                     <div className="z-10 flex w-full flex-col items-start text-left md:w-1/2">
@@ -88,7 +83,7 @@ export default function HomeClient() {
                         <div className="flex flex-wrap items-center gap-x-5 gap-y-4 sm:gap-x-7 md:gap-x-9">
                             <Stat value={menuCount} suffix="종" label="밀키트 메뉴" />
                             <Stat value="10분" label="조리 시간" divided />
-                            <Stat value="7시" label="새벽 배송" divided />
+                            <Stat value="0원" label="구독 배송비" divided />
                         </div>
                     </div>
 
@@ -102,9 +97,9 @@ export default function HomeClient() {
                         />
                         <FeatureCard
                             icon="ri-truck-line"
-                            title="새벽 배송"
-                            label="내일 아침 7시 도착"
-                            description="자는 사이 문 앞까지. 가장 신선한 상태로 하루를 시작하세요."
+                            title="구독 무료배송"
+                            label="배송비 0원 · 서울 새벽배송"
+                            description="구독은 끼 수와 관계없이 무료배송. 일요일 23시 전까지 고르면 목요일 아침 도착."
                         />
                         <FeatureCard
                             icon="ri-knife-line"
@@ -127,7 +122,7 @@ export default function HomeClient() {
                             <div>
                                 <p className="text-sm font-bold text-white">구독 시작하기 — 한 주 저녁을 미리 정해두세요</p>
                                 <p className="mt-0.5 text-xs text-white/70">
-                                    일주일에 4~7끼 · 많이 받을수록 한 끼가 싸지고, 메뉴는 매주 직접 변경
+                                    구독은 배송비 0원 · 일주일에 4~7끼 · 메뉴는 일요일 23시 전까지 직접 변경
                                 </p>
                             </div>
                         </div>

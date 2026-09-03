@@ -6,8 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "./AuthContext";
 import { useCart } from "./CartContext";
 import { CATEGORIES } from "../lib/products";
-import { subscriptionStatus } from "../lib/subscriptions";
-import type { SubscriptionResponse } from "../types/api";
+import { pickCurrentSubscription, readSubscriptionList } from "../lib/subscriptions";
 
 /* 원본은 데스크탑이 ?categories= , 모바일이 ?cat= 을 써서 서로 달랐음.
    서버 컨트롤러가 받는 파라미터명으로 아래 상수만 맞추면 됨. */
@@ -21,20 +20,6 @@ const DESKTOP_LINK =
     "text-sm font-medium text-foreground-600 hover:text-foreground-950 transition-colors whitespace-nowrap";
 const DESKTOP_LINK_ACTIVE =
     "text-sm font-bold text-foreground-950 transition-colors whitespace-nowrap";
-
-async function readSubscriptionHistory(response: Response) {
-    if (!response.ok) return [];
-
-    try {
-        const data = (await response.json()) as SubscriptionResponse[] | { content?: SubscriptionResponse[]; items?: SubscriptionResponse[] };
-        if (Array.isArray(data)) return data;
-        if (Array.isArray(data.content)) return data.content;
-        if (Array.isArray(data.items)) return data.items;
-        return [];
-    } catch {
-        return [];
-    }
-}
 
 export default function Navbar() {
     const pathname = usePathname();
@@ -147,25 +132,12 @@ export default function Navbar() {
             }
 
             if (!response.ok) {
-                const historyResponse = await fetch("/api/subscriptions/me/history", { credentials: "include" });
-                if (historyResponse.status === 401 || historyResponse.status === 403) {
-                    router.push("/login");
-                    return;
-                }
-
-                const history = await readSubscriptionHistory(historyResponse);
-                const hasActiveSubscription = history.some((item) => subscriptionStatus(item) === "ACTIVE");
-                if (hasActiveSubscription) {
-                    router.push("/subscription");
-                    return;
-                }
-
                 sendToSubscribe();
                 return;
             }
 
-            const subscription = (await response.json()) as SubscriptionResponse;
-            if (subscriptionStatus(subscription) === "CANCELED") {
+            const subscription = pickCurrentSubscription(await readSubscriptionList(response));
+            if (!subscription) {
                 router.push("/subscribe");
                 return;
             }

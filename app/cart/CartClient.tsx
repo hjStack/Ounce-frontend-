@@ -8,7 +8,8 @@ import { useCart } from "../../components/CartContext";
 import { useToast } from "../../components/ToastContext";
 import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "../../lib/shipping";
-import type { CartItem } from "../../types/api";
+import { hasSubscriptionFreeShippingBenefit, pickCurrentSubscription, readSubscriptionList } from "../../lib/subscriptions";
+import type { CartItem, SubscriptionResponse } from "../../types/api";
 
 interface SelectableCartItem extends CartItem {
     selected: boolean;
@@ -23,6 +24,8 @@ export default function CartClient() {
     const [countdown, setCountdown] = useState("00:00:00");
     const [urgent, setUrgent] = useState(false);
     const [pastCutoff, setPastCutoff] = useState(false);
+    const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+    const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
     const fetchMyCart = useCallback(async () => {
         setLoading(true);
@@ -47,6 +50,31 @@ export default function CartClient() {
     useEffect(() => {
         void fetchMyCart();
     }, [fetchMyCart]);
+
+    useEffect(() => {
+        let ignore = false;
+        setSubscriptionLoading(true);
+
+        fetch("/api/subscriptions/me", { credentials: "include" })
+            .then(async (response) => {
+                if (response.status === 404 || response.status === 401 || response.status === 403) return null;
+                if (!response.ok) throw new Error("SUBSCRIPTION_FAILED");
+                return pickCurrentSubscription(await readSubscriptionList(response));
+            })
+            .then((data) => {
+                if (!ignore) setSubscription(data);
+            })
+            .catch(() => {
+                if (!ignore) setSubscription(null);
+            })
+            .finally(() => {
+                if (!ignore) setSubscriptionLoading(false);
+            });
+
+        return () => {
+            ignore = true;
+        };
+    }, []);
 
     useEffect(() => {
         const formatTime = (ms: number) => {
@@ -74,11 +102,13 @@ export default function CartClient() {
         return () => window.clearInterval(timer);
     }, []);
 
+    const hasSubscriptionFreeShipping = hasSubscriptionFreeShippingBenefit(subscription);
+
     const summary = useMemo(() => {
         const selectedItems = items.filter((item) => item.selected);
         const totalItems = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
         const totalPrice = selectedItems.reduce((sum, item) => sum + item.finalPrice * item.quantity, 0);
-        const shipping = totalPrice >= FREE_SHIPPING_THRESHOLD || totalPrice === 0 ? 0 : SHIPPING_FEE;
+        const shipping = hasSubscriptionFreeShipping || totalPrice >= FREE_SHIPPING_THRESHOLD || totalPrice === 0 ? 0 : SHIPPING_FEE;
         return {
             selectedItems,
             selectedCount: selectedItems.length,
@@ -87,7 +117,7 @@ export default function CartClient() {
             shipping,
             finalPrice: totalPrice + shipping,
         };
-    }, [items]);
+    }, [hasSubscriptionFreeShipping, items]);
 
     const updateQuantity = async (cartId: number, delta: number) => {
         const item = items.find((candidate) => candidate.cartId === cartId);
@@ -257,10 +287,25 @@ export default function CartClient() {
                                     <SummaryRow label="상품 금액" value={won(summary.totalPrice)} />
                                     <SummaryRow
                                         label="배송비"
-                                        value={summary.shipping === 0 ? "무료" : won(summary.shipping)}
-                                        valueClassName={summary.shipping === 0 ? "text-[#3b4055] font-medium" : "text-gray-800 font-medium"}
+                                        value={subscriptionLoading ? "확인 중" : summary.shipping === 0 ? "무료" : won(summary.shipping)}
+                                        valueClassName={summary.shipping === 0 || subscriptionLoading ? "text-[#3b4055] font-medium" : "text-gray-800 font-medium"}
                                     />
-                                    {summary.totalPrice > 0 && summary.totalPrice < FREE_SHIPPING_THRESHOLD && (
+                                    {subscriptionLoading && (
+                                        <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+                                            구독 무료배송 혜택을 확인하고 있습니다.
+                                        </div>
+                                    )}
+                                    {!subscriptionLoading && hasSubscriptionFreeShipping && (
+                                        <div className="rounded-lg border border-[#447861]/15 bg-[#447861]/10 px-3 py-2 text-xs font-semibold text-[#447861]">
+                                            구독 혜택으로 배송비가 무료 적용되었습니다.
+                                        </div>
+                                    )}
+                                    {!subscriptionLoading && !hasSubscriptionFreeShipping && summary.shipping > 0 && (
+                                        <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
+                                            단품 주문은 배송비 3,000원이 발생합니다. 구독하면 무료배송이 적용됩니다.
+                                        </div>
+                                    )}
+                                    {!hasSubscriptionFreeShipping && summary.totalPrice > 0 && summary.totalPrice < FREE_SHIPPING_THRESHOLD && (
                                         <div className="text-xs text-[#447861]">
                                             {(FREE_SHIPPING_THRESHOLD - summary.totalPrice).toLocaleString("ko-KR")}원 더 담으면 무료배송!
                                         </div>
@@ -271,17 +316,21 @@ export default function CartClient() {
 
                                 <div className="mb-5 flex items-center justify-between">
                                     <span className="text-sm font-bold text-gray-900">총 결제 금액</span>
-                                    <span className="text-xl font-bold text-[#447861]">{won(summary.finalPrice)}</span>
+                                    <span className="text-xl font-bold text-[#447861]">{subscriptionLoading ? "확인 중" : won(summary.finalPrice)}</span>
                                 </div>
 
                                 <button
                                     type="button"
                                     onClick={handleCheckout}
-                                    disabled={summary.selectedCount === 0}
+                                    disabled={summary.selectedCount === 0 || subscriptionLoading}
                                     className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#3b4055] font-semibold text-white shadow-sm transition-colors hover:bg-gray-800 disabled:opacity-50"
                                 >
                                     <i className="ri-shopping-bag-line text-xl" />
-                                    {summary.selectedCount === 0 ? "상품을 선택해주세요" : `${won(summary.finalPrice)} 결제하기`}
+                                    {summary.selectedCount === 0
+                                        ? "상품을 선택해주세요"
+                                        : subscriptionLoading
+                                          ? "혜택 확인 중..."
+                                          : `${won(summary.finalPrice)} 결제하기`}
                                 </button>
 
                                 <div className="mt-4 flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3">

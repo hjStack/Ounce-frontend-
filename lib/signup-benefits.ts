@@ -4,6 +4,18 @@ export const SIGNUP_BENEFIT_TOAST_MESSAGE = "가입 축하 1,000P와 첫 구매 
 
 const PENDING_KEY = "ounce.signup-benefit-toast.pending.v1";
 const SEEN_PREFIX = "ounce.signup-benefit-toast.seen.v1:";
+const seenSignupBenefitToasts = new Set<string>();
+
+function clearLegacySignupBenefitToastSeen() {
+    try {
+        for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+            const key = localStorage.key(index);
+            if (key?.startsWith(SEEN_PREFIX)) localStorage.removeItem(key);
+        }
+    } catch {
+        // 이전 로컬 저장값 정리는 실패해도 화면 동작을 막지 않는다.
+    }
+}
 
 export function markSignupBenefitToastPending(mode: SignupBenefitToastMode = "expected") {
     try {
@@ -14,6 +26,8 @@ export function markSignupBenefitToastPending(mode: SignupBenefitToastMode = "ex
 }
 
 export function readSignupBenefitToastMode(): SignupBenefitToastMode | null {
+    clearLegacySignupBenefitToastSeen();
+
     try {
         const value = sessionStorage.getItem(PENDING_KEY);
         return value === "expected" || value === "check" ? value : null;
@@ -31,17 +45,9 @@ export function clearSignupBenefitToastPending() {
 }
 
 export function hasSeenSignupBenefitToast(memberKey: string) {
-    try {
-        return localStorage.getItem(`${SEEN_PREFIX}${memberKey}`) === "true";
-    } catch {
-        return false;
-    }
+    return seenSignupBenefitToasts.has(memberKey);
 }
 
 export function markSignupBenefitToastSeen(memberKey: string) {
-    try {
-        localStorage.setItem(`${SEEN_PREFIX}${memberKey}`, "true");
-    } catch {
-        // 저장소 접근 실패는 중복 방지에만 영향을 준다.
-    }
+    seenSignupBenefitToasts.add(memberKey);
 }
