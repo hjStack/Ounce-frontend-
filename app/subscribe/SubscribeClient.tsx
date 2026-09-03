@@ -7,6 +7,8 @@ import type { FormEvent } from "react";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
 import { useToast } from "../../components/ToastContext";
+
+import { apiFetch } from "@/lib/api";
 import {
   fetchCatalog,
   PRODUCT_PLACEHOLDER,
@@ -23,10 +25,7 @@ import {
   subscriptionStatus,
   subscriptionStatusLabel,
 } from "../../lib/subscriptions";
-import {
-  productIdsOf,
-  selectionFromSlots,
-} from "../../lib/subscription-menu";
+import { productIdsOf, selectionFromSlots } from "../../lib/subscription-menu";
 import type {
   Product,
   SubscriptionCheckoutResponse,
@@ -420,7 +419,8 @@ export default function SubscribeClient() {
                       선택한 메뉴로 오늘 바로 결제됩니다
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-foreground-600">
-                      23시 전 결제 시 다음날 새벽배송, 23시 이후 결제 시 그 다음날 새벽배송으로 접수됩니다.
+                      23시 전 결제 시 다음날 새벽배송, 23시 이후 결제 시 그
+                      다음날 새벽배송으로 접수됩니다.
                     </p>
                   </div>
                 </div>
@@ -476,8 +476,8 @@ export default function SubscribeClient() {
                 이번 주 받을 메뉴 {selected.meals}개
               </h2>
               <p className="mt-1.5 text-sm text-foreground-500">
-                첫 배송 메뉴를 직접 고르세요. 마감까지 {countdown} · 일요일
-                23시 전까지 횟수 제한 없이 변경 가능
+                첫 배송 메뉴를 직접 고르세요. 마감까지 {countdown} · 일요일 23시
+                전까지 횟수 제한 없이 변경 가능
               </p>
             </div>
             <button

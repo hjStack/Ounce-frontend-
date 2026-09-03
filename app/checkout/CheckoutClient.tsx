@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useCart } from "../../components/CartContext";
 import { useToast } from "../../components/ToastContext";
+import { apiFetch } from "@/lib/api";
 import {
   couponStatusLabel,
   couponUnavailableReason,
@@ -619,7 +620,8 @@ export default function CheckoutClient() {
                   />
                   {!hasSubscriptionFreeShipping && summary.shipping > 0 && (
                     <div className="rounded-lg bg-gray-50 px-3 py-2 text-xs font-medium text-gray-600">
-                      단품 주문은 배송비 3,000원이 발생합니다. 구독하면 무료배송이 적용됩니다.
+                      단품 주문은 배송비 3,000원이 발생합니다. 구독하면
+                      무료배송이 적용됩니다.
                     </div>
                   )}
                   {summary.couponDiscount > 0 && (
