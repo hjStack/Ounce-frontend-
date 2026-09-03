@@ -69,7 +69,7 @@ export default function AdminProductEditClient({ productId }: { productId: strin
         async function loadProduct() {
             setLoading(true);
             try {
-                const response = await fetch(`/api/products/${productId}`, { credentials: "include" });
+                const response = await apiFetch(`/api/products/${productId}`, { credentials: "include" });
                 if (response.status === 404) throw new Error("상품을 찾을 수 없습니다.");
                 if (!response.ok) throw new Error("상품 정보를 불러오지 못했습니다.");
 
@@ -103,7 +103,7 @@ export default function AdminProductEditClient({ productId }: { productId: strin
     }, [productId, toast]);
 
     useEffect(() => {
-        fetch("/api/categories", { credentials: "include" })
+        apiFetch("/api/categories", { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("CATEGORY_LOAD_FAILED");
                 return res.json();
@@ -483,7 +483,7 @@ async function requestProductUpdate(productId: string, body: FormData) {
 
     for (const endpoint of endpoints) {
         for (const method of methods) {
-            const response = await fetch(endpoint, {
+            const response = await apiFetch(endpoint, {
                 method,
                 credentials: "include",
                 body,

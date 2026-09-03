@@ -99,7 +99,7 @@ export default function SubscribeClient() {
 
   const resolveSubscriptionConflict = async () => {
     try {
-      const response = await fetch("/api/subscriptions/me", {
+      const response = await apiFetch("/api/subscriptions/me", {
         credentials: "include",
       });
       if (response.status === 401 || response.status === 403) {
@@ -182,7 +182,7 @@ export default function SubscribeClient() {
     let ignore = false;
     setSubscriptionLoading(true);
 
-    fetch("/api/subscriptions/me", { credentials: "include" })
+    apiFetch("/api/subscriptions/me", { credentials: "include" })
       .then(async (response) => {
         if (
           response.status === 404 ||
@@ -234,7 +234,7 @@ export default function SubscribeClient() {
         mealsPerWeek: selected.meals,
         selection: selectedSelection,
       };
-      const response = await fetch("/api/subscriptions", {
+      const response = await apiFetch("/api/subscriptions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

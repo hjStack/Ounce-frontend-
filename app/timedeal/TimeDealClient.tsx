@@ -29,7 +29,7 @@ export default function TimeDealClient() {
     const [timer, setTimer] = useState({ hours: "00", minutes: "00", seconds: "00", active: false });
 
     useEffect(() => {
-        fetch("/api/timedeal", { credentials: "include" })
+        apiFetch("/api/timedeal", { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("TIME_DEAL_FAILED");
                 return res.json();
@@ -253,7 +253,7 @@ function TimeDealCard({ product }: { product: Product }) {
                 return;
             }
 
-            const res = await fetch(`/api/carts/items?productId=${product.productId}&quantity=1`, { method: "POST", credentials: "include" });
+            const res = await apiFetch(`/api/carts/items?productId=${product.productId}&quantity=1`, { method: "POST", credentials: "include" });
             if (res.status === 401) {
                 router.push("/login");
                 return;

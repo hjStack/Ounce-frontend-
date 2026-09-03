@@ -30,7 +30,7 @@ export default function CartClient() {
     const fetchMyCart = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch("/api/carts/items", { credentials: "include" });
+            const response = await apiFetch("/api/carts/items", { credentials: "include" });
             if (response.status === 401) {
                 toast("로그인이 필요한 서비스입니다.", "error");
                 window.setTimeout(() => router.push("/login"), 1000);
@@ -55,7 +55,7 @@ export default function CartClient() {
         let ignore = false;
         setSubscriptionLoading(true);
 
-        fetch("/api/subscriptions/me", { credentials: "include" })
+        apiFetch("/api/subscriptions/me", { credentials: "include" })
             .then(async (response) => {
                 if (response.status === 404 || response.status === 401 || response.status === 403) return null;
                 if (!response.ok) throw new Error("SUBSCRIPTION_FAILED");
@@ -127,7 +127,7 @@ export default function CartClient() {
         if (targetQty === item.quantity) return;
 
         try {
-            const response = await fetch(`/api/carts/${cartId}?quantity=${targetQty}`, {
+            const response = await apiFetch(`/api/carts/${cartId}?quantity=${targetQty}`, {
                 method: "PATCH",
                 credentials: "include",
             });
@@ -158,7 +158,7 @@ export default function CartClient() {
 
         try {
             const results = await Promise.all(
-                targets.map((item) => fetch(`/api/carts/${item.cartId}`, { method: "DELETE", credentials: "include" })),
+                targets.map((item) => apiFetch(`/api/carts/${item.cartId}`, { method: "DELETE", credentials: "include" })),
             );
             if (!results.every((response) => response.ok || response.status === 204)) {
                 toast("일부 상품 삭제에 실패했습니다.", "error");

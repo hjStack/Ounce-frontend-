@@ -127,7 +127,7 @@ export default function AdminOrdersClient() {
         async (nextStatus: string, nextPage: number) => {
             setLoading(true);
             try {
-                const response = await fetch(endpoint(nextStatus, nextPage), { credentials: "include" });
+                const response = await apiFetch(endpoint(nextStatus, nextPage), { credentials: "include" });
                 if (response.status === 401 || response.status === 403) {
                     setForbidden(true);
                     return;
@@ -491,7 +491,7 @@ async function requestOrderStatusUpdate(orderId: number, status: string) {
     let lastResponse: Response | null = null;
 
     for (const request of requests) {
-        const response = await fetch(request.endpoint, {
+        const response = await apiFetch(request.endpoint, {
             method: request.method,
             headers: { "Content-Type": "application/json" },
             credentials: "include",

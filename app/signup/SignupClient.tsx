@@ -59,7 +59,7 @@ export default function SignupClient() {
 
         setSubmitting(true);
         try {
-            const response = await fetch("/api/members/signup", {
+            const response = await apiFetch("/api/members/signup", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password, name }),

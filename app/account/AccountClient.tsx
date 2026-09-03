@@ -29,7 +29,7 @@ export default function AccountClient() {
 
         async function load() {
             try {
-                const me = await fetch("/api/members/me", { credentials: "include" });
+                const me = await apiFetch("/api/members/me", { credentials: "include" });
                 if (me.status === 401) {
                     toast("로그인이 필요한 페이지입니다.", "error");
                     router.push("/login");
@@ -40,8 +40,8 @@ export default function AccountClient() {
                 if (!ignore) setMember(data);
 
                 const [orderRes, couponRes] = await Promise.all([
-                    fetch("/api/orders", { credentials: "include" }),
-                    fetch("/api/coupons/me", { credentials: "include" }),
+                    apiFetch("/api/orders", { credentials: "include" }),
+                    apiFetch("/api/coupons/me", { credentials: "include" }),
                 ]);
                 if (!ignore && orderRes.ok) setOrders((await orderRes.json()) as Order[]);
                 if (!ignore && couponRes.ok) setCoupons((await couponRes.json()) as Coupon[]);
@@ -82,7 +82,7 @@ export default function AccountClient() {
         if (withdrawText.trim() !== WITHDRAW_TEXT) return;
         setDeleting(true);
         try {
-            const res = await fetch("/api/members/me", { method: "DELETE", credentials: "include" });
+            const res = await apiFetch("/api/members/me", { method: "DELETE", credentials: "include" });
             if (!res.ok && res.status !== 204) {
                 toast("회원 탈퇴에 실패했습니다.", "error");
                 return;

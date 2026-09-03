@@ -106,7 +106,7 @@ export default function AdminMembersClient() {
         async (nextPage: number) => {
             setLoading(true);
             try {
-                const response = await fetch(endpoint(nextPage), { credentials: "include" });
+                const response = await apiFetch(endpoint(nextPage), { credentials: "include" });
                 if (response.status === 401 || response.status === 403) {
                     setForbidden(true);
                     return;

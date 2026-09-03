@@ -20,7 +20,7 @@ export default function MypageClient() {
     const [member, setMember] = useState<Member | null>(null);
 
     useEffect(() => {
-        fetch("/api/members/me", { credentials: "include" })
+        apiFetch("/api/members/me", { credentials: "include" })
             .then((res) => {
                 if (res.status === 401) {
                     toast("로그인이 필요한 페이지입니다.", "error");

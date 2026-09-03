@@ -120,7 +120,7 @@ function customerName(order: Order) {
 
 async function fetchDashboardOrders(): Promise<DashboardOrders> {
     try {
-        const response = await fetch(`/api/admin/orders?page=0&size=${DASHBOARD_ORDER_SIZE}`, { credentials: "include" });
+        const response = await apiFetch(`/api/admin/orders?page=0&size=${DASHBOARD_ORDER_SIZE}`, { credentials: "include" });
         if (response.status === 401 || response.status === 403) return emptyOrders({ forbidden: true });
         if ([404, 405, 501].includes(response.status)) return emptyOrders({ missing: true });
         if (!response.ok) return emptyOrders({ failed: true });
@@ -136,7 +136,7 @@ async function fetchDashboardOrders(): Promise<DashboardOrders> {
 async function fetchWaitingQna(): Promise<DashboardQna> {
     try {
         const params = new URLSearchParams({ page: "0", size: String(DASHBOARD_QNA_SIZE), status: "WAITING" });
-        const response = await fetch(`/api/admin/qna?${params.toString()}`, { credentials: "include" });
+        const response = await apiFetch(`/api/admin/qna?${params.toString()}`, { credentials: "include" });
         if (response.status === 401 || response.status === 403) return emptyQna({ forbidden: true });
         if ([404, 405, 501].includes(response.status)) return emptyQna({ missing: true });
         if (!response.ok) return emptyQna({ failed: true });

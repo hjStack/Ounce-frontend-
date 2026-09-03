@@ -58,8 +58,8 @@ export default function AdminQnaClient() {
     const loadStats = useCallback(async () => {
         try {
             const [waitingRes, answeredRes] = await Promise.all([
-                fetch(query("WAITING", 0, 100), { credentials: "include" }),
-                fetch(query("ANSWERED", 0, 1), { credentials: "include" }),
+                apiFetch(query("WAITING", 0, 100), { credentials: "include" }),
+                apiFetch(query("ANSWERED", 0, 1), { credentials: "include" }),
             ]);
             if (waitingRes.status === 401 || waitingRes.status === 403) {
                 setForbidden(true);
@@ -84,7 +84,7 @@ export default function AdminQnaClient() {
         async (nextStatus: string, nextPage: number) => {
             setLoading(true);
             try {
-                const res = await fetch(query(nextStatus, nextPage), { credentials: "include" });
+                const res = await apiFetch(query(nextStatus, nextPage), { credentials: "include" });
                 if (res.status === 401 || res.status === 403) {
                     setForbidden(true);
                     return;
@@ -126,7 +126,7 @@ export default function AdminQnaClient() {
         if (!ok) return;
 
         try {
-            const res = await fetch(`/api/admin/qna/${item.qnaId}/answer`, {
+            const res = await apiFetch(`/api/admin/qna/${item.qnaId}/answer`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

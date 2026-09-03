@@ -44,7 +44,7 @@ export default function OrdersClient() {
     const [expandedId, setExpandedId] = useState<number | null>(null);
 
     useEffect(() => {
-        fetch("/api/orders", { credentials: "include" })
+        apiFetch("/api/orders", { credentials: "include" })
             .then((res) => {
                 if (res.status === 401) {
                     toast("로그인이 필요한 페이지입니다.", "error");

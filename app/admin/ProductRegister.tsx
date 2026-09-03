@@ -53,7 +53,7 @@ export default function ProductRegister() {
     const loadProducts = useCallback(async () => {
         setProductsLoading(true);
         try {
-            const response = await fetch("/api/products?page=0&size=100", { credentials: "include" });
+            const response = await apiFetch("/api/products?page=0&size=100", { credentials: "include" });
             if (!response.ok) throw new Error("PRODUCT_LOAD_FAILED");
             const data = (await response.json()) as ProductSliceResponse;
             setProducts(data.products ?? data.content ?? data.items ?? []);
@@ -65,7 +65,7 @@ export default function ProductRegister() {
     }, []);
 
     useEffect(() => {
-        fetch("/api/categories", { credentials: "include" })
+        apiFetch("/api/categories", { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("CATEGORY_LOAD_FAILED");
                 return res.json();
@@ -192,7 +192,7 @@ export default function ProductRegister() {
 
         setSubmitting(true);
         try {
-            const response = await fetch("/api/products", {
+            const response = await apiFetch("/api/products", {
                 method: "POST",
                 credentials: "include",
                 body: formData,
@@ -228,7 +228,7 @@ export default function ProductRegister() {
 
         setDeletingId(product.productId);
         try {
-            const response = await fetch(`/api/admin/products/${product.productId}`, {
+            const response = await apiFetch(`/api/admin/products/${product.productId}`, {
                 method: "DELETE",
                 credentials: "include",
             });

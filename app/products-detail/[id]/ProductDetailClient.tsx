@@ -33,7 +33,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
 
     const loadReviews = useCallback(async () => {
         try {
-            const res = await fetch(`/api/products/${productId}/reviews`, { credentials: "include" });
+            const res = await apiFetch(`/api/products/${productId}/reviews`, { credentials: "include" });
             if (!res.ok) throw new Error("REVIEW_FETCH_FAILED");
             setReviews((await res.json()) as Review[]);
         } catch {
@@ -46,7 +46,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
         setLoading(true);
         setError("");
 
-        fetch(`/api/products/${productId}`, { credentials: "include" })
+        apiFetch(`/api/products/${productId}`, { credentials: "include" })
             .then((res) => {
                 if (!res.ok) throw new Error("NOT_FOUND");
                 return res.json();
@@ -107,7 +107,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
         }
 
         try {
-            const res = await fetch(`/api/carts/items?productId=${productId}&quantity=${quantity}`, {
+            const res = await apiFetch(`/api/carts/items?productId=${productId}&quantity=${quantity}`, {
                 method: "POST",
                 credentials: "include",
             });
@@ -141,7 +141,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
         }
 
         try {
-            const res = await fetch(`/api/products/${productId}/reviews`, {
+            const res = await apiFetch(`/api/products/${productId}/reviews`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -170,7 +170,7 @@ export default function ProductDetailClient({ productId }: { productId: string }
         if (!ok) return;
 
         try {
-            const res = await fetch(`/api/reviews/${reviewId}`, { method: "DELETE", credentials: "include" });
+            const res = await apiFetch(`/api/reviews/${reviewId}`, { method: "DELETE", credentials: "include" });
             if (res.status === 401) {
                 await requireLogin();
                 return;

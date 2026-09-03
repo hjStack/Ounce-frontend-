@@ -268,7 +268,7 @@ export default function SubscriptionClient() {
             }
 
             try {
-                const response = await fetch(`/api/subscriptions/${targetSubscriptionId}/cycles`, { credentials: "include" });
+                const response = await apiFetch(`/api/subscriptions/${targetSubscriptionId}/cycles`, { credentials: "include" });
                 if (response.status === 401 || response.status === 403) {
                     toast("로그인이 필요한 페이지입니다.", "error");
                     router.push("/login");
@@ -296,7 +296,7 @@ export default function SubscriptionClient() {
         setLoading(true);
         setError("");
         try {
-            const response = await fetch("/api/subscriptions/me", { credentials: "include" });
+            const response = await apiFetch("/api/subscriptions/me", { credentials: "include" });
             if (response.status === 401 || response.status === 403) {
                 toast("로그인이 필요한 페이지입니다.", "error");
                 router.push("/login");
@@ -396,7 +396,7 @@ export default function SubscriptionClient() {
         try {
             const request: SubscriptionChangeMealsRequest = { mealsPerWeek: previewPlan.meals };
             const data = await applyDetailResponse(
-                await fetch(`/api/subscriptions/${subscriptionId}/meals`, {
+                await apiFetch(`/api/subscriptions/${subscriptionId}/meals`, {
                     method: "PATCH",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -433,7 +433,7 @@ export default function SubscriptionClient() {
         try {
             const request: SubscriptionChangeMenuRequest = { selection: selectionFromSlots(draftMenu) };
             const data = await applyDetailResponse(
-                await fetch(`/api/subscriptions/${subscriptionId}/menu`, {
+                await apiFetch(`/api/subscriptions/${subscriptionId}/menu`, {
                     method: "PUT",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -459,7 +459,7 @@ export default function SubscriptionClient() {
         setAction("checkout");
         try {
             const request: SubscriptionChangeMenuRequest = { selection: selectionFromSlots(draftMenu) };
-            const response = await fetch(`/api/subscriptions/${subscriptionId}/checkout`, {
+            const response = await apiFetch(`/api/subscriptions/${subscriptionId}/checkout`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -492,7 +492,7 @@ export default function SubscriptionClient() {
 
         setAction("retry");
         try {
-            const response = await fetch(`/api/subscriptions/${subscriptionId}/payment-retry`, {
+            const response = await apiFetch(`/api/subscriptions/${subscriptionId}/payment-retry`, {
                 method: "POST",
                 credentials: "include",
             });
@@ -516,7 +516,7 @@ export default function SubscriptionClient() {
         setAction("skip");
         try {
             const data = await applyDetailResponse(
-                await fetch(`/api/subscriptions/${subscriptionId}/skip`, {
+                await apiFetch(`/api/subscriptions/${subscriptionId}/skip`, {
                     method: "POST",
                     credentials: "include",
                 }),
@@ -543,7 +543,7 @@ export default function SubscriptionClient() {
         setAction("cancelSkip");
         try {
             const data = await applyDetailResponse(
-                await fetch(`/api/subscriptions/${subscriptionId}/skip`, {
+                await apiFetch(`/api/subscriptions/${subscriptionId}/skip`, {
                     method: "DELETE",
                     credentials: "include",
                 }),
@@ -567,7 +567,7 @@ export default function SubscriptionClient() {
         try {
             const request: SubscriptionPauseRequest = { resumeDate: pauseDate };
             const data = await applyDetailResponse(
-                await fetch(`/api/subscriptions/${subscriptionId}/pause`, {
+                await apiFetch(`/api/subscriptions/${subscriptionId}/pause`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     credentials: "include",
@@ -591,7 +591,7 @@ export default function SubscriptionClient() {
 
         setAction("resume");
         try {
-            const response = await fetch(`/api/subscriptions/${subscriptionId}/resume`, {
+            const response = await apiFetch(`/api/subscriptions/${subscriptionId}/resume`, {
                 method: "POST",
                 credentials: "include",
             });
@@ -620,7 +620,7 @@ export default function SubscriptionClient() {
 
         setAction("cancel");
         try {
-            const response = await fetch(`/api/subscriptions/${subscriptionId}`, {
+            const response = await apiFetch(`/api/subscriptions/${subscriptionId}`, {
                 method: "DELETE",
                 credentials: "include",
             });

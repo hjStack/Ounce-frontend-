@@ -74,7 +74,7 @@ export default function CheckoutClient() {
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/members/me", { credentials: "include" })
+    apiFetch("/api/members/me", { credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((member: Member | null) => {
         if (member?.name) setReceiverName(member.name);
@@ -86,7 +86,7 @@ export default function CheckoutClient() {
     let ignore = false;
     setSubscriptionLoading(true);
 
-    fetch("/api/subscriptions/me", { credentials: "include" })
+    apiFetch("/api/subscriptions/me", { credentials: "include" })
       .then(async (res) => {
         if (res.status === 404 || res.status === 401 || res.status === 403)
           return null;
@@ -116,7 +116,7 @@ export default function CheckoutClient() {
       ? (JSON.parse(selectedRaw) as number[])
       : [];
 
-    fetch("/api/carts/items", { credentials: "include" })
+    apiFetch("/api/carts/items", { credentials: "include" })
       .then((res) => {
         if (res.status === 401) {
           toast("로그인이 필요한 서비스입니다.", "error");
@@ -162,8 +162,8 @@ export default function CheckoutClient() {
       setCouponLoading(true);
       try {
         const [couponRes, availableRes] = await Promise.all([
-          fetch("/api/coupons/me", { credentials: "include" }),
-          fetch(`/api/coupons/me/available?orderAmount=${orderAmount}`, {
+          apiFetch("/api/coupons/me", { credentials: "include" }),
+          apiFetch(`/api/coupons/me/available?orderAmount=${orderAmount}`, {
             credentials: "include",
           }),
         ]);
@@ -291,7 +291,7 @@ export default function CheckoutClient() {
 
     setSubmitting(true);
     try {
-      const res = await fetch("/api/orders", {
+      const res = await apiFetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",

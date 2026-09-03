@@ -70,7 +70,7 @@ export default function LoginClient() {
 
         setSubmitting(true);
         try {
-            const response = await fetch("/api/members/login", {
+            const response = await apiFetch("/api/members/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",

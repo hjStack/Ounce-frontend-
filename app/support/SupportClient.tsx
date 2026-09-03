@@ -70,7 +70,7 @@ export default function SupportClient() {
     const loadQnas = useCallback(async (page = 0) => {
         setQnaLoading(true);
         try {
-            const res = await fetch(`/api/qna/me?page=${page}&size=${PAGE_SIZE}`, { credentials: "include" });
+            const res = await apiFetch(`/api/qna/me?page=${page}&size=${PAGE_SIZE}`, { credentials: "include" });
             if (res.status === 401) {
                 setQnas([]);
                 setQnaLoaded(true);
@@ -138,7 +138,7 @@ export default function SupportClient() {
         const url = editingId ? `/api/qna/${editingId}` : "/api/qna";
         const method = editingId ? "PATCH" : "POST";
         try {
-            const res = await fetch(url, {
+            const res = await apiFetch(url, {
                 method,
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -177,7 +177,7 @@ export default function SupportClient() {
         const ok = await confirm("문의를 삭제하시겠습니까?", { kind: "delete" });
         if (!ok) return;
         try {
-            const res = await fetch(`/api/qna/${item.qnaId}`, { method: "DELETE", credentials: "include" });
+            const res = await apiFetch(`/api/qna/${item.qnaId}`, { method: "DELETE", credentials: "include" });
             if (res.status === 401) {
                 toast("로그인이 필요한 서비스입니다.", "error");
                 router.push("/login");
