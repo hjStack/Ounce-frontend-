@@ -25,6 +25,7 @@ function normalizeLoginError(rawMessage: string) {
 export default function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const welcome = searchParams.get("welcome") === "true";
   const { refresh } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
@@ -33,11 +34,10 @@ export default function LoginClient() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (searchParams.get("welcome") === "true") {
-      markSignupBenefitToastPending("expected");
-      toast("가입이 완료됐습니다. 로그인하면 혜택을 확인할 수 있어요.");
-    }
-  }, [searchParams, toast]);
+    if (!welcome) return;
+    markSignupBenefitToastPending("expected");
+    toast("가입이 완료됐습니다. 로그인하면 혜택을 확인할 수 있어요.");
+  }, [toast, welcome]);
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase();

@@ -18,6 +18,7 @@ const SORTS = [
 
 export default function ProductsClient() {
     const searchParams = useSearchParams();
+    const searchQuery = searchParams.toString();
     const [keyword, setKeyword] = useState("");
     const [category, setCategory] = useState("all");
     const [sort, setSort] = useState("new");
@@ -29,11 +30,16 @@ export default function ProductsClient() {
     const [status, setStatus] = useState("");
 
     useEffect(() => {
-        setKeyword((searchParams.get("keyword") || "").trim());
-        setCategory(searchParams.get("categories") || "all");
-        setSort(searchParams.get("sort") || "new");
-        setPage(0);
-    }, [searchParams]);
+        const params = new URLSearchParams(searchQuery);
+        const nextKeyword = (params.get("keyword") || "").trim();
+        const nextCategory = params.get("categories") || "all";
+        const nextSort = params.get("sort") || "new";
+
+        setKeyword((current) => (current === nextKeyword ? current : nextKeyword));
+        setCategory((current) => (current === nextCategory ? current : nextCategory));
+        setSort((current) => (current === nextSort ? current : nextSort));
+        setPage((current) => (current === 0 ? current : 0));
+    }, [searchQuery]);
 
     const syncUrl = useCallback((nextCategory: string, nextKeyword: string, nextSort: string) => {
         const next = new URLSearchParams();

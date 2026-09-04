@@ -1,6 +1,11 @@
 let refreshing: Promise<boolean> | null = null;
 
-const SKIP = ["/api/auth/refresh", "/api/members/login", "/api/members/signup"];
+const SKIP = [
+  "/api/auth/refresh",
+  "/api/members/login",
+  "/api/members/me",
+  "/api/members/signup",
+];
 
 async function doRefresh(): Promise<boolean> {
   if (!refreshing) {

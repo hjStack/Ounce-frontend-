@@ -25,7 +25,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
       <Providers>
-        <Suspense fallback={<div className="h-20 md:h-24" />}>
+        <Suspense
+          fallback={
+            <div
+              aria-hidden="true"
+              className="fixed left-0 right-0 top-0 z-50 h-20 border-b border-background-200/70 bg-background-cream/95 backdrop-blur-md md:h-24"
+            />
+          }
+        >
           <Navbar />
         </Suspense>
         {children}
