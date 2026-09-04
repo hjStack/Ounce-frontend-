@@ -48,6 +48,54 @@ jobs:
             exit 1
           fi
 
+      - name: 🔎 GitHub Actions runner IP 조회
+        id: runner_ip
+        run: |
+          RUNNER_IP="$(curl -fsS https://checkip.amazonaws.com | tr -d '[:space:]')"
+
+          if [[ ! "$RUNNER_IP" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::runner public IP를 확인하지 못했습니다: $RUNNER_IP"
+            exit 1
+          fi
+
+          echo "ip=$RUNNER_IP" >> "$GITHUB_OUTPUT"
+          echo "Runner public IP: $RUNNER_IP"
+
+      - name: 🔐 AWS 인증 설정
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: 🔐 runner IP를 SSH 보안그룹에 임시 허용
+        id: allow_runner_ssh
+        env:
+          SECURITY_GROUP_ID: ${{ secrets.EC2_SSH_SECURITY_GROUP_ID }}
+          RUNNER_IP: ${{ steps.runner_ip.outputs.ip }}
+        run: |
+          if [ -z "$SECURITY_GROUP_ID" ]; then
+            echo "::error::EC2_SSH_SECURITY_GROUP_ID secret이 비어 있습니다."
+            exit 1
+          fi
+
+          ADDED=false
+          if OUTPUT=$(aws ec2 authorize-security-group-ingress \
+              --group-id "$SECURITY_GROUP_ID" \
+              --protocol tcp \
+              --port 22 \
+              --cidr "$RUNNER_IP/32" 2>&1); then
+            ADDED=true
+            echo "Runner IP SSH rule added: $RUNNER_IP/32"
+          elif echo "$OUTPUT" | grep -q "InvalidPermission.Duplicate"; then
+            echo "Runner IP SSH rule already exists: $RUNNER_IP/32"
+          else
+            echo "$OUTPUT"
+            exit 1
+          fi
+
+          echo "added=$ADDED" >> "$GITHUB_OUTPUT"
+
       - name: 🔎 SSH 포트 연결 확인
         env:
           SERVER_HOST: ${{ secrets.SERVER_HOST }}
@@ -86,3 +134,15 @@ jobs:
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/ounce-frontend:latest
             chmod +x ./deploy-frontend.sh
             ./deploy-frontend.sh
+
+      - name: 🔒 runner IP SSH 임시 허용 제거
+        if: always() && steps.allow_runner_ssh.outputs.added == 'true'
+        env:
+          SECURITY_GROUP_ID: ${{ secrets.EC2_SSH_SECURITY_GROUP_ID }}
+          RUNNER_IP: ${{ steps.runner_ip.outputs.ip }}
+        run: |
+          aws ec2 revoke-security-group-ingress \
+            --group-id "$SECURITY_GROUP_ID" \
+            --protocol tcp \
+            --port 22 \
+            --cidr "$RUNNER_IP/32" || true
