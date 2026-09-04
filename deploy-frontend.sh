@@ -64,7 +64,11 @@ echo "   현재 서비스 중: $OLD_COLOR($OLD_PORT)  →  배포 대상: $TARGE
 
 # ── 2. 신버전 컨테이너 기동 ─────────────────────────────────
 echo "🐳 $TARGET_COLOR 컨테이너를 최신 이미지로 실행합니다."
-$COMPOSE pull "frontend-$TARGET_COLOR" || { echo "❌ 이미지 pull 실패"; exit 1; }
+if [ "${SKIP_IMAGE_PULL:-0}" = "1" ]; then
+    echo "   self-hosted runner에서 이미 빌드한 로컬 이미지를 사용합니다."
+else
+    $COMPOSE pull "frontend-$TARGET_COLOR" || { echo "❌ 이미지 pull 실패"; exit 1; }
+fi
 $COMPOSE up -d --no-deps --force-recreate "frontend-$TARGET_COLOR" \
     || { echo "❌ $TARGET_COLOR 기동 실패"; exit 1; }
 
@@ -149,6 +153,10 @@ $COMPOSE stop -t "$STOP_TIMEOUT" "frontend-$OLD_COLOR"
 $COMPOSE rm -f "frontend-$OLD_COLOR"
 
 # ── 8. 디스크 정리 ──────────────────────────────────────────
-docker image prune -f > /dev/null 2>&1 || true
+if [ "${SKIP_IMAGE_PULL:-0}" = "1" ]; then
+    echo "🧹 self-hosted runner의 Docker build cache 보존을 위해 image prune을 건너뜁니다."
+else
+    docker image prune -f > /dev/null 2>&1 || true
+fi
 
 echo "🎉 배포 완료. 현재 프론트엔드 서비스 중: $TARGET_COLOR"

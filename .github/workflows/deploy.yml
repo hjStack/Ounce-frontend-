@@ -42,4 +42,4 @@ jobs:
 
           chmod +x "$DEPLOY_DIR/deploy-frontend.sh"
           cd "$DEPLOY_DIR"
-          ./deploy-frontend.sh
+          SKIP_IMAGE_PULL=1 ./deploy-frontend.sh
