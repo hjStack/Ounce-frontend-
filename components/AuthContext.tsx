@@ -30,7 +30,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/members/me", { credentials: "include" });
+      const res = await apiFetch("/api/members/me", {
+        credentials: "include",
+        auth: { redirectOnUnauthorized: false },
+      });
       setUser(res.ok ? ((await res.json()) as Member) : null);
     } catch {
       setUser(null);

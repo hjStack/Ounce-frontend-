@@ -2,11 +2,11 @@ name: Ounce 프론트엔드 배포
 
 on:
   push:
-    branches: [ "main", "dev", "feature/**" ]
+    branches: ["main", "dev", "feature/**"]
 
 jobs:
   build-and-deploy:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: ubuntu-latest
 
     steps:
       - name: 📥 코드 체크아웃
@@ -15,10 +15,8 @@ jobs:
       - name: 🛡️ .env 파일 만들기
         env:
           ENV_FILE: ${{ secrets.FRONTEND_ENV }}
-          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         run: |
           printf '%s' "$ENV_FILE" > .env
-          printf '\nFRONTEND_IMAGE=%s/ounce-frontend:latest\n' "$DOCKER_USERNAME" >> .env
 
       - name: 🐳 도커 허브 로그인
         uses: docker/login-action@v2
@@ -31,15 +29,60 @@ jobs:
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ounce-frontend:latest .
           docker push ${{ secrets.DOCKER_USERNAME }}/ounce-frontend:latest
 
-      - name: 🌐 EC2 로컬 배포 실행
+      - name: 🔎 SSH host 값 검증
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
         run: |
-          set -e
-          DEPLOY_DIR="/home/ubuntu/ounce-frontend"
+          if [ -z "$SERVER_HOST" ]; then
+            echo "::error::SERVER_HOST secret이 비어 있습니다."
+            exit 1
+          fi
 
-          mkdir -p "$DEPLOY_DIR/nginx"
-          cp docker-compose.frontend.yml deploy-frontend.sh .env maintenance.html "$DEPLOY_DIR/"
-          cp nginx/frontend-error-page.conf "$DEPLOY_DIR/nginx/"
+          if [[ "$SERVER_HOST" == *"://"* || "$SERVER_HOST" == *"@"* || "$SERVER_HOST" == *":"* || "$SERVER_HOST" == *"/"* ]]; then
+            echo "::error::SERVER_HOST에는 포트, 프로토콜, 사용자명, 경로 없이 EC2 Public IPv4 또는 Public DNS만 입력하세요."
+            exit 1
+          fi
 
-          chmod +x "$DEPLOY_DIR/deploy-frontend.sh"
-          cd "$DEPLOY_DIR"
-          SKIP_IMAGE_PULL=1 ./deploy-frontend.sh
+          if ! getent hosts "$SERVER_HOST" > /dev/null; then
+            echo "::error::SERVER_HOST가 IP 또는 DNS 이름으로 해석되지 않습니다. EC2 콘솔의 Public IPv4/Public DNS 값을 확인하세요."
+            exit 1
+          fi
+
+      - name: 🔎 SSH 포트 연결 확인
+        env:
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+        run: |
+          echo "Checking TCP connection to SERVER_HOST:22..."
+          if ! timeout 10 bash -c '</dev/tcp/$SERVER_HOST/22'; then
+            echo "::error::GitHub Actions runner에서 EC2 22번 포트로 접속할 수 없습니다. EC2 보안그룹 SSH 인바운드에 위 Runner public IP/32를 추가하거나, 배포 방식만 임시로 0.0.0.0/0 SSH 허용 후 배포하세요."
+            exit 1
+          fi
+          echo "TCP 22 is reachable."
+
+      # 👇 현재 테스트를 위해 if 조건을 임시로 제거했습니다.
+      - name: 📦 설정 파일 운영 서버로 전송
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: 22
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          # 백엔드와 파일 이름이 다릅니다!
+          source: "docker-compose.frontend.yml,deploy-frontend.sh,.env,maintenance.html,nginx/frontend-error-page.conf"
+          target: /home/${{ secrets.SERVER_USERNAME }}/ounce-frontend
+
+      - name: 🌐 운영 서버 접속 및 무중단 배포 실행
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          port: 22
+          username: ${{ secrets.SERVER_USERNAME }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /home/${{ secrets.SERVER_USERNAME }}/ounce-frontend
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/ounce-frontend:latest
+            chmod +x ./deploy-frontend.sh
+            ./deploy-frontend.sh
