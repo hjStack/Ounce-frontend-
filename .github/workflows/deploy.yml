@@ -54,7 +54,7 @@ jobs:
         run: |
           echo "Checking TCP connection to SERVER_HOST:22..."
           if ! timeout 10 bash -c '</dev/tcp/$SERVER_HOST/22'; then
-            echo "::error::GitHub Actions runner에서 EC2 22번 포트로 접속할 수 없습니다. EC2 보안그룹 SSH 인바운드에 위 Runner public IP/32를 추가하거나, 배포 방식만 임시로 0.0.0.0/0 SSH 허용 후 배포하세요."
+            echo "::error::GitHub Actions runner에서 EC2 22번 포트로 접속할 수 없습니다. EC2 보안그룹 SSH 인바운드에는 신뢰 가능한 고정 IP/32만 추가하세요. GitHub-hosted runner는 IP가 바뀔 수 있으므로 self-hosted runner 또는 고정 egress IP를 권장합니다."
             exit 1
           fi
           echo "TCP 22 is reachable."

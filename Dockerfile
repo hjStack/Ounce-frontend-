@@ -28,4 +28,4 @@ EXPOSE 3000
 ENV PORT=3000
 
 # Next.js 내장 서버 대신 standalone으로 생성된 가벼운 Node.js 서버 실행
-CMD ["Next.js", "server.js"]
+CMD ["node", "server.js"]
