@@ -48,16 +48,16 @@ jobs:
             exit 1
           fi
 
-      - name: 🔎 SSH 포트 연결 확인
-        env:
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-        run: |
-          echo "Checking TCP connection to SERVER_HOST:22..."
-          if ! timeout 10 bash -c '</dev/tcp/$SERVER_HOST/22'; then
-            echo "::error::GitHub Actions runner에서 EC2 22번 포트로 접속할 수 없습니다. EC2 보안그룹 SSH 인바운드에 위 Runner public IP/32를 추가하거나, 배포 방식만 임시로 0.0.0.0/0 SSH 허용 후 배포하세요."
-            exit 1
-          fi
-          echo "TCP 22 is reachable."
+      # - name: 🔎 SSH 포트 연결 확인
+      #   env:
+      #     SERVER_HOST: ${{ secrets.SERVER_HOST }}
+      #   run: |
+      #     echo "Checking TCP connection to SERVER_HOST:22..."
+      #     if ! timeout 10 bash -c '</dev/tcp/$SERVER_HOST/22'; then
+      #       echo "::error::GitHub Actions runner에서 EC2 22번 포트로 접속할 수 없습니다. EC2 보안그룹 SSH 인바운드에 위 Runner public IP/32를 추가하거나, 배포 방식만 임시로 0.0.0.0/0 SSH 허용 후 배포하세요."
+      #       exit 1
+      #     fi
+      #     echo "TCP 22 is reachable."
 
       # 👇 현재 테스트를 위해 if 조건을 임시로 제거했습니다.
       - name: 📦 설정 파일 운영 서버로 전송
