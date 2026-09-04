@@ -101,9 +101,9 @@ export default function GlobalError({
                 <main style={mainStyle}>
                     <section style={contentStyle}>
                         <span style={badgeStyle}>500</span>
-                        <h1 style={titleStyle}>개발자가 화면 수정중입니다!</h1>
+                        <h1 style={titleStyle}>잠시만 기다려주세요</h1>
                         <p style={descriptionStyle}>
-                            일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+                            서비스를 안정적으로 제공하기 위해 잠시 확인 중입니다. 잠시 후 다시 시도해주세요.
                         </p>
                         <div style={actionsStyle}>
                             <button type="button" onClick={() => retry()} style={primaryButtonStyle}>

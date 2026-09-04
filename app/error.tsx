@@ -21,10 +21,10 @@ export default function Error({
                     500
                 </span>
                 <h1 className="mt-5 break-keep text-4xl font-black leading-tight md:text-5xl">
-                    개발자가 화면 수정중입니다!
+                    잠시만 기다려주세요
                 </h1>
                 <p className="mt-5 break-keep text-base leading-7 text-foreground-600">
-                    일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.
+                    서비스를 안정적으로 제공하기 위해 잠시 확인 중입니다. 잠시 후 다시 시도해주세요.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
                     <button
