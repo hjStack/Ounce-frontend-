@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   frontend-blue:
-    image: hyejun02/ounce-frontend:latest
+    image: ${FRONTEND_IMAGE:-hyejun02/ounce-frontend:latest}
     container_name: frontend-blue
     ports:
       - "3000:3000"
@@ -11,7 +11,7 @@ services:
     restart: always
 
   frontend-green:
-    image: hyejun02/ounce-frontend:latest
+    image: ${FRONTEND_IMAGE:-hyejun02/ounce-frontend:latest}
     container_name: frontend-green
     ports:
       - "3001:3000"
