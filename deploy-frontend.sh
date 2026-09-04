@@ -7,6 +7,8 @@ set -uo pipefail
 
 PROJECT_DIR="/home/ubuntu/ounce-frontend"
 ENV_FILE="/etc/nginx/conf.d/service-frontend-url.inc"   # 프론트엔드 전용 Nginx 변수 파일
+ERROR_ROOT="/var/www/ounce-error"
+ERROR_SNIPPET="/etc/nginx/snippets/ounce-frontend-error-page.conf"
 COMPOSE="docker compose -f docker-compose.frontend.yml"
 
 HEALTH_PATH="/"        # Next.js 메인 페이지가 200을 주는지 확인
@@ -24,6 +26,21 @@ echo "🚀 Ounce 프론트엔드 배포 스크립트를 시작합니다."
 if ! sudo -n true 2>/dev/null; then
     echo "❌ sudo 가 비밀번호를 요구합니다. /etc/sudoers.d/ 설정을 확인하세요."
     exit 1
+fi
+
+# ── 0-1. Nginx 정적 에러 페이지 설치 ────────────────────────
+if [ -f "$PROJECT_DIR/maintenance.html" ]; then
+    sudo mkdir -p "$ERROR_ROOT"
+    sudo cp "$PROJECT_DIR/maintenance.html" "$ERROR_ROOT/maintenance.html"
+    sudo chmod 0644 "$ERROR_ROOT/maintenance.html"
+    echo "🧰 Nginx 정적 에러 페이지를 설치했습니다: $ERROR_ROOT/maintenance.html"
+fi
+
+if [ -f "$PROJECT_DIR/nginx/frontend-error-page.conf" ]; then
+    sudo mkdir -p "$(dirname "$ERROR_SNIPPET")"
+    sudo cp "$PROJECT_DIR/nginx/frontend-error-page.conf" "$ERROR_SNIPPET"
+    sudo chmod 0644 "$ERROR_SNIPPET"
+    echo "🧰 Nginx 에러 페이지 snippet을 설치했습니다: $ERROR_SNIPPET"
 fi
 
 # ── 1. 현재 서비스 중인 색 판별 ──────────────────────────────

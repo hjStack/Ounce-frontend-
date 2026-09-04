@@ -10,6 +10,12 @@
 !.yarn/releases
 !.yarn/versions
 
+  .next
+  .git
+  npm-debug.log
+  .env*
+  .DS_Store
+
 # testing
 /coverage
 
