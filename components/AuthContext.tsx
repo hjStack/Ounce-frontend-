@@ -48,12 +48,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
+      await apiFetch("/api/auth/refresh", {
+        method: "POST",
+        credentials: "include",
+        auth: {
+          redirectOnUnauthorized: false,
+          refreshOnUnauthorized: false,
+        },
+      }).catch(() => undefined);
       const res = await apiFetch("/api/members/logout", {
         method: "POST",
         credentials: "include",
+        auth: {
+          redirectOnUnauthorized: false,
+          refreshOnUnauthorized: false,
+        },
       });
       if (res.status === 404) {
-        await apiFetch("/logout", { method: "POST", credentials: "include" });
+        await apiFetch("/logout", {
+          method: "POST",
+          credentials: "include",
+          auth: {
+            redirectOnUnauthorized: false,
+            refreshOnUnauthorized: false,
+          },
+        });
       }
     } catch (err) {
       console.error("로그아웃 요청 실패:", err);

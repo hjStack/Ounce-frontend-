@@ -254,6 +254,14 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {isSignupPage && (
+              <Link
+                href="/login"
+                className="inline-flex h-9 items-center rounded-md px-2 text-xs font-bold text-foreground-700 transition-colors hover:text-primary-700 sm:px-3 sm:text-sm"
+              >
+                로그인
+              </Link>
+            )}
             {!isSignupPage && (
               <Link
                 href="/products"
@@ -344,6 +352,24 @@ export default function Navbar() {
           </div>
 
           <div className="flex items-center gap-3 md:gap-4">
+            <button
+              type="button"
+              onClick={() => void openSubscriptionEntry()}
+              disabled={subscriptionNavLoading}
+              className={`hidden h-10 items-center gap-1.5 rounded-md px-4 text-sm font-bold text-white shadow-sm transition-colors disabled:cursor-wait disabled:opacity-70 md:inline-flex ${
+                isTimeDeal
+                  ? "bg-primary-500 hover:bg-primary-400"
+                  : "bg-primary-500 hover:bg-primary-600"
+              }`}
+            >
+              <i className="ri-calendar-check-line text-base" />
+              {subscriptionNavLoading
+                ? "확인 중..."
+                : showAuthenticated
+                  ? "내 구독"
+                  : "구독 시작하기"}
+            </button>
+
             {showAdmin && (
               <Link
                 href="/admin"

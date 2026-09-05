@@ -1,39 +1,28 @@
 import Link from "next/link";
 
-type CouponLinkProps = {
-    href: string;
-    ctaLabel: string;
-};
-
 type CouponCardProps = {
     ctaHref?: string;
     ctaLabel?: string;
 };
 
-export function LaunchCouponStrip({ href, ctaLabel }: CouponLinkProps) {
+export function LaunchCouponStrip() {
     return (
         <div className="border-b border-primary-100 bg-primary-50">
             <div className="mx-auto w-full max-w-7xl px-4 py-3 md:px-8 lg:px-12">
-                <Link href={href} className="group flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex min-w-0 items-start gap-3 sm:items-center">
-                        <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-primary-200 bg-white px-2.5 text-[11px] font-extrabold text-primary-700">
-                            <i className="ri-truck-line text-sm" />
-                            구독 배송비 0원
-                        </span>
-                        <div className="min-w-0">
-                            <p className="break-keep text-xs font-extrabold text-foreground-900">
-                                구독하면 끼 수와 관계없이 매주 무료배송
-                            </p>
-                            <p className="mt-0.5 break-keep text-[11px] font-semibold text-foreground-500">
-                                일요일 23시 전까지 메뉴 변경 · 목요일 아침 서울 새벽배송
-                            </p>
-                        </div>
-                    </div>
-                    <span className="inline-flex w-fit items-center gap-1 text-xs font-extrabold text-primary-700 transition-colors group-hover:text-primary-900">
-                        {ctaLabel}
-                        <i className="ri-arrow-right-line transition-transform group-hover:translate-x-0.5" />
+                <div className="flex min-w-0 items-start gap-3 sm:items-center">
+                    <span className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md border border-primary-200 bg-white px-2.5 text-[11px] font-extrabold text-primary-700">
+                        <i className="ri-truck-line text-sm" />
+                        구독 배송비 0원
                     </span>
-                </Link>
+                    <div className="min-w-0">
+                        <p className="break-keep text-xs font-extrabold text-foreground-900">
+                            구독하면 끼 수와 관계없이 매주 무료배송
+                        </p>
+                        <p className="mt-0.5 break-keep text-[11px] font-semibold text-foreground-500">
+                            일요일 23시 전까지 메뉴 변경 · 목요일 아침 서울 새벽배송
+                        </p>
+                    </div>
+                </div>
             </div>
         </div>
     );

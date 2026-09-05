@@ -217,12 +217,22 @@ export interface SubscriptionSelectionItem {
     quantity: number;
 }
 
+export interface SubscriptionWeeklyMenuDay {
+    dayOfWeek: string;
+    productId?: number;
+    quantity?: number;
+    skipped?: boolean;
+}
+
 export interface SubscriptionChangeMealsRequest {
     mealsPerWeek: number;
 }
 
 export interface SubscriptionChangeMenuRequest {
     selection: SubscriptionSelection;
+    productIds?: number[];
+    weeklyMenu?: SubscriptionWeeklyMenuDay[];
+    skippedDays?: string[];
 }
 
 export interface SubscriptionPauseRequest {
@@ -243,6 +253,15 @@ export interface SubscriptionWeeklyMenuItem {
     id?: number;
     quantity?: number;
     count?: number;
+    dayOfWeek?: string;
+    weekday?: string;
+    day?: string | number;
+    deliveryDay?: string;
+    slotIndex?: number;
+    index?: number;
+    skipped?: boolean;
+    skip?: boolean;
+    status?: string;
     product?: Product;
 }
 
@@ -274,12 +293,40 @@ export interface SubscriptionCycle {
     paymentStatus?: string;
     deliveryStatus?: string;
     billingDate?: string | null;
+    billing_date?: string | null;
     billingAt?: string | null;
+    billing_at?: string | null;
     paidAt?: string | null;
+    paid_at?: string | null;
+    paidDate?: string | null;
+    paid_date?: string | null;
+    paymentDate?: string | null;
+    payment_date?: string | null;
+    paymentAt?: string | null;
+    payment_at?: string | null;
+    paymentCompletedAt?: string | null;
+    payment_completed_at?: string | null;
+    approvedAt?: string | null;
+    approved_at?: string | null;
+    confirmedAt?: string | null;
+    confirmed_at?: string | null;
+    completedAt?: string | null;
+    completed_at?: string | null;
+    successAt?: string | null;
+    success_at?: string | null;
     paymentTriedAt?: string | null;
+    payment_tried_at?: string | null;
     deliveryDate?: string | null;
+    delivery_date?: string | null;
     deliveredAt?: string | null;
+    delivered_at?: string | null;
+    nextDeliveryDate?: string | null;
+    next_delivery_date?: string | null;
     skippedAt?: string | null;
+    createdAt?: string | null;
+    createdDate?: string | null;
+    created_at?: string | null;
+    created_date?: string | null;
     failedAttempts?: number | null;
     retryCount?: number | null;
     amount?: number | null;
@@ -310,6 +357,8 @@ export interface SubscriptionResponse {
     description?: string | null;
     paymentStatus?: string;
     checkoutStatus?: string;
+    weeklyMenu?: SubscriptionWeeklyMenuItem[];
+    skippedDays?: Array<string | number>;
     active?: boolean | null;
     chargeable?: boolean | null;
     terminal?: boolean | null;
@@ -363,6 +412,7 @@ export interface SubscriptionResponse {
     subscriptionFee?: number | null;
     totalAmount?: number | null;
     selection?: SubscriptionSelection | SubscriptionSelectionItem[];
+    items?: SubscriptionWeeklyMenuItem[];
     menu?: SubscriptionWeeklyMenuItem[];
     menuItems?: SubscriptionWeeklyMenuItem[];
     products?: Product[];

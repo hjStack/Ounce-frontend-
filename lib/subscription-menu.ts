@@ -2,6 +2,8 @@ import type { Product, SubscriptionSelection, SubscriptionSelectionItem } from "
 import { stockState } from "./products";
 
 export type MenuSlot = Product | null;
+const DAY_KEYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
+const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null;
@@ -43,6 +45,39 @@ function quantityFromUnknown(value: unknown) {
 
 function arrayFrom(value: unknown) {
     return Array.isArray(value) ? value : [];
+}
+
+function dayIndexFromUnknown(value: unknown) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+        if (value >= 1 && value <= 7) return value - 1;
+        if (value >= 0 && value < 7) return value;
+        return -1;
+    }
+
+    if (typeof value !== "string") return -1;
+    const normalized = value.trim().toUpperCase();
+    const englishIndex = DAY_KEYS.findIndex((day) => normalized === day || normalized.startsWith(day));
+    if (englishIndex >= 0) return englishIndex;
+
+    return DAY_LABELS.findIndex((day) => normalized.includes(day));
+}
+
+function positionedIndexFromUnknown(value: unknown, fallbackIndex: number) {
+    if (!isRecord(value)) return -1;
+
+    const explicitIndex = dayIndexFromUnknown(value.dayOfWeek ?? value.weekday ?? value.day ?? value.deliveryDay);
+    if (explicitIndex >= 0) return explicitIndex;
+
+    const positionalIndex = dayIndexFromUnknown(value.slotIndex ?? value.index);
+    if (positionalIndex >= 0) return positionalIndex;
+
+    return fallbackIndex;
+}
+
+function isSkippedMenuItem(value: unknown) {
+    if (!isRecord(value)) return false;
+    const status = String(value.status || "").toUpperCase();
+    return value.skipped === true || value.skip === true || status.includes("SKIP");
 }
 
 function selectionItemsFrom(value: unknown): SubscriptionSelectionItem[] {
@@ -90,8 +125,12 @@ export function normalizeWeeklyMenu(data: unknown, catalog: Product[], count: nu
     const catalogById = new Map(catalog.map((product) => [product.productId, product]));
     const products: Product[] = [];
     const productIds: number[] = [];
+    const positionedSlots: MenuSlot[] = Array.from({ length: count }, () => null);
+    let hasPositionedSlots = false;
 
     const collect = (item: unknown) => {
+        if (isSkippedMenuItem(item)) return;
+
         const quantity = quantityFromUnknown(item);
         const directProduct = productFromUnknown(item);
         const nestedProduct = isRecord(item) ? productFromUnknown(item.product) : null;
@@ -108,10 +147,38 @@ export function normalizeWeeklyMenu(data: unknown, catalog: Product[], count: nu
         }
     };
 
+    const collectPositioned = (item: unknown, fallbackIndex: number) => {
+        if (!isRecord(item)) return false;
+
+        const index = positionedIndexFromUnknown(item, fallbackIndex);
+        if (index < 0 || index >= count) return false;
+
+        if (isSkippedMenuItem(item)) {
+            hasPositionedSlots = true;
+            positionedSlots[index] = null;
+            return true;
+        }
+
+        const directProduct = productFromUnknown(item);
+        const nestedProduct = productFromUnknown(item.product);
+        const productId = productIdFromUnknown(item);
+        const product = directProduct ?? nestedProduct ?? catalogById.get(productId) ?? null;
+        if (!product) return false;
+
+        hasPositionedSlots = true;
+        positionedSlots[index] = product;
+        return true;
+    };
+
     if (Array.isArray(data)) {
-        data.forEach(collect);
+        data.forEach((item, index) => {
+            if (!collectPositioned(item, index)) collect(item);
+        });
     } else if (isRecord(data)) {
         selectionItemsFrom(data.selection).forEach(collect);
+        arrayFrom(data.weeklyMenu).forEach((item, index) => {
+            if (!collectPositioned(item, index)) collect(item);
+        });
         arrayFrom(data.products).forEach(collect);
         arrayFrom(data.items).forEach(collect);
         arrayFrom(data.menuItems).forEach(collect);
@@ -125,6 +192,8 @@ export function normalizeWeeklyMenu(data: unknown, catalog: Product[], count: nu
         const product = catalogById.get(productId);
         if (product) products.push(product);
     });
+
+    if (hasPositionedSlots) return positionedSlots;
 
     return completeWeeklyMenu(products, catalog, count);
 }

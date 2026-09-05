@@ -154,6 +154,7 @@ export function subscriptionStatusLabel(status?: string) {
     if (CANCELED_STATUSES.has(normalized)) return "해지";
     if (normalized === "ENDED") return "종료";
     if (normalized === "PENDING") return "신청 대기";
+    if (normalized === "DRAFT") return "구독 준비 중";
     return status || "이용 중";
 }
 
@@ -161,7 +162,7 @@ export function subscriptionStatusClass(status?: string) {
     const normalized = normalizeStatus(status || "ACTIVE");
     if (ACTIVE_STATUSES.has(normalized)) return "bg-primary-50 text-primary-700";
     if (PAYMENT_FAILED_STATUSES.has(normalized) || normalized === "PAYMENT_FAILED") return "bg-red-50 text-red-700";
-    if (PAUSED_STATUSES.has(normalized) || normalized === "PENDING") return "bg-yellow-50 text-yellow-700";
+    if (PAUSED_STATUSES.has(normalized) || normalized === "PENDING" || normalized === "DRAFT") return "bg-yellow-50 text-yellow-700";
     if (CANCELED_STATUSES.has(normalized)) return "bg-red-50 text-red-700";
     return "bg-background-100 text-foreground-700";
 }

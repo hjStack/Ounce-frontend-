@@ -14,6 +14,11 @@ import {
   getCouponId,
 } from "../../lib/coupons";
 import { won } from "../../lib/products";
+import {
+  forgetSignupBenefitToastSeen,
+  markSignupBenefitWithdrawal,
+  signupBenefitMemberKey,
+} from "../../lib/signup-benefits";
 import type { Coupon, Member, Order } from "../../types/api";
 import { apiFetch } from "@/lib/api";
 
@@ -114,6 +119,10 @@ export default function AccountClient() {
       if (!res.ok && res.status !== 204) {
         toast("회원 탈퇴에 실패했습니다.", "error");
         return;
+      }
+      if (member) {
+        forgetSignupBenefitToastSeen(signupBenefitMemberKey(member));
+        markSignupBenefitWithdrawal(member);
       }
       toast("회원 탈퇴가 완료되었습니다.");
       await logout();

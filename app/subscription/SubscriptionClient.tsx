@@ -66,11 +66,13 @@ import type {
   SubscriptionCycle,
   SubscriptionPauseRequest,
   SubscriptionResponse,
+  SubscriptionWeeklyMenuDay,
 } from "../../types/api";
 
 import { apiFetch } from "@/lib/api";
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const DAY_KEYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
 
 type ActionKey =
   | "meals"
@@ -161,11 +163,155 @@ function formatRemaining(deadline: Date) {
 function hasMenuData(subscription: SubscriptionResponse | null) {
   if (!subscription) return false;
   return Boolean(
+    subscription.weeklyMenu?.length ||
     subscription.selection?.length ||
+    subscription.items?.length ||
     subscription.menu?.length ||
     subscription.menuItems?.length ||
     subscription.products?.length,
   );
+}
+
+function normalizeSkippedDays(skippedDays: boolean[], count: number) {
+  return Array.from({ length: count }, (_, index) =>
+    Boolean(skippedDays[index]),
+  );
+}
+
+function dayIndexFromValue(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    if (value >= 1 && value <= 7) return value - 1;
+    if (value >= 0 && value < 7) return value;
+    return -1;
+  }
+
+  if (typeof value !== "string") return -1;
+  const normalized = value.trim().toUpperCase();
+  const englishIndex = DAY_KEYS.findIndex(
+    (day) => normalized === day || normalized.startsWith(day),
+  );
+  if (englishIndex >= 0) return englishIndex;
+
+  const koreanIndex = DAY_LABELS.findIndex((day) => normalized.includes(day));
+  return koreanIndex;
+}
+
+function skippedDaysFromSubscription(
+  subscription: SubscriptionResponse | null,
+  count: number,
+) {
+  const skipped = Array.from({ length: count }, () => false);
+  if (!subscription) return skipped;
+
+  subscription.skippedDays?.forEach((day) => {
+    const index = dayIndexFromValue(day);
+    if (index >= 0 && index < count) skipped[index] = true;
+  });
+
+  const markSkippedItem = (item: unknown, fallbackIndex: number) => {
+    if (!isRecord(item)) return;
+    const status = String(item.status || "").toUpperCase();
+    const skip =
+      item.skipped === true || item.skip === true || status.includes("SKIP");
+    if (!skip) return;
+
+    const explicitIndex = dayIndexFromValue(
+      item.dayOfWeek ?? item.weekday ?? item.day ?? item.deliveryDay,
+    );
+    const positionedIndex = dayIndexFromValue(item.slotIndex ?? item.index);
+    const index =
+      explicitIndex >= 0
+        ? explicitIndex
+        : positionedIndex >= 0
+          ? positionedIndex
+          : fallbackIndex;
+    if (index >= 0 && index < count) skipped[index] = true;
+  };
+
+  [
+    subscription.weeklyMenu,
+    subscription.menuItems,
+    subscription.items,
+    subscription.menu,
+  ].forEach((items) => {
+    if (!Array.isArray(items)) return;
+    items.forEach(markSkippedItem);
+  });
+
+  return skipped;
+}
+
+function activeMenuSlots(
+  slots: MenuSlot[],
+  skippedDays: boolean[],
+  count: number,
+) {
+  const normalizedSkippedDays = normalizeSkippedDays(skippedDays, count);
+  return Array.from({ length: count }, (_, index) =>
+    normalizedSkippedDays[index] ? null : (slots[index] ?? null),
+  );
+}
+
+function menuSignature(
+  slots: MenuSlot[],
+  skippedDays: boolean[],
+  count: number,
+) {
+  const normalizedSkippedDays = normalizeSkippedDays(skippedDays, count);
+  return Array.from({ length: count }, (_, index) => {
+    if (normalizedSkippedDays[index]) return "skip";
+    return String(slots[index]?.productId ?? "empty");
+  }).join("|");
+}
+
+function weeklyMenuPayload(
+  slots: MenuSlot[],
+  skippedDays: boolean[],
+  count: number,
+): SubscriptionWeeklyMenuDay[] {
+  const normalizedSkippedDays = normalizeSkippedDays(skippedDays, count);
+  return Array.from({ length: count }, (_, index) => {
+    if (normalizedSkippedDays[index]) {
+      return { dayOfWeek: DAY_KEYS[index], skipped: true };
+    }
+
+    const productId = Number(slots[index]?.productId || 0);
+    if (productId <= 0) return { dayOfWeek: DAY_KEYS[index], skipped: false };
+
+    return {
+      dayOfWeek: DAY_KEYS[index],
+      productId,
+      quantity: 1,
+      skipped: false,
+    };
+  });
+}
+
+function skippedDayKeys(skippedDays: boolean[], count: number) {
+  return normalizeSkippedDays(skippedDays, count)
+    .map((skipped, index) => (skipped ? DAY_KEYS[index] : null))
+    .filter((day): day is (typeof DAY_KEYS)[number] => day !== null);
+}
+
+function menuChangePayload(
+  slots: MenuSlot[],
+  skippedDays: boolean[],
+  count: number,
+): SubscriptionChangeMenuRequest {
+  const selectedSlots = activeMenuSlots(slots, skippedDays, count);
+  const skippedDaysForRequest = skippedDayKeys(skippedDays, count);
+  const selection = selectionFromSlots(selectedSlots);
+
+  if (skippedDaysForRequest.length === 0) {
+    return { selection };
+  }
+
+  return {
+    selection,
+    productIds: productIdsOf(selectedSlots),
+    weeklyMenu: weeklyMenuPayload(selectedSlots, skippedDays, count),
+    skippedDays: skippedDaysForRequest,
+  };
 }
 
 function normalizeCycles(data: unknown) {
@@ -181,16 +327,61 @@ function cycleIdOf(cycle: SubscriptionCycle) {
   return Number(cycle.cycleId ?? cycle.subscriptionCycleId ?? cycle.id ?? 0);
 }
 
+function cycleStringField(cycle: SubscriptionCycle, keys: string[]) {
+  const record = cycle as unknown as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) return value;
+  }
+  return undefined;
+}
+
+function cyclePaymentDateOf(cycle: SubscriptionCycle) {
+  return cycleStringField(cycle, [
+    "billingDate",
+    "billing_date",
+    "billingAt",
+    "billing_at",
+    "paidAt",
+    "paid_at",
+    "paidDate",
+    "paid_date",
+    "paymentDate",
+    "payment_date",
+    "paymentAt",
+    "payment_at",
+    "paymentCompletedAt",
+    "payment_completed_at",
+    "approvedAt",
+    "approved_at",
+    "confirmedAt",
+    "confirmed_at",
+    "completedAt",
+    "completed_at",
+    "successAt",
+    "success_at",
+    "paymentTriedAt",
+    "payment_tried_at",
+    "createdAt",
+    "createdDate",
+    "created_at",
+    "created_date",
+  ]);
+}
+
+function cycleDeliveryDateOf(cycle: SubscriptionCycle) {
+  return cycleStringField(cycle, [
+    "deliveryDate",
+    "delivery_date",
+    "deliveredAt",
+    "delivered_at",
+    "nextDeliveryDate",
+    "next_delivery_date",
+  ]);
+}
+
 function cycleDateOf(cycle: SubscriptionCycle) {
-  return (
-    cycle.billingDate ||
-    cycle.billingAt ||
-    cycle.paidAt ||
-    cycle.paymentTriedAt ||
-    cycle.deliveryDate ||
-    cycle.deliveredAt ||
-    undefined
-  );
+  return cyclePaymentDateOf(cycle) || cycleDeliveryDateOf(cycle);
 }
 
 function cycleStatusLabel(cycle: SubscriptionCycle) {
@@ -200,6 +391,7 @@ function cycleStatusLabel(cycle: SubscriptionCycle) {
   if (status.includes("SUCCESS") || status === "PAID") return "결제 성공";
   if (status.includes("FAIL")) return "결제 실패";
   if (status.includes("SKIP")) return "건너뜀";
+  if (status.includes("DRAFT")) return "결제 예정";
   if (status.includes("READY") || status.includes("PENDING")) return "대기";
   if (status.includes("DELIVER")) return "배송 완료";
   return status || "-";
@@ -241,6 +433,13 @@ async function readApiMessage(response: Response, fallback: string) {
   }
 }
 
+function isMealCountMismatchMessage(message: string) {
+  return (
+    message.includes("선택한 밀키트 수량") ||
+    (message.includes("수량") && message.includes("끼니"))
+  );
+}
+
 function subscriptionFromCheckout(data: SubscriptionCheckoutResponse | null) {
   return data?.subscription ?? data?.detail ?? data?.data ?? null;
 }
@@ -260,6 +459,8 @@ export default function SubscriptionClient() {
   const [catalogLoading, setCatalogLoading] = useState(false);
   const [weeklyMenu, setWeeklyMenu] = useState<MenuSlot[]>([]);
   const [draftMenu, setDraftMenu] = useState<MenuSlot[]>([]);
+  const [weeklySkippedDays, setWeeklySkippedDays] = useState<boolean[]>([]);
+  const [draftSkippedDays, setDraftSkippedDays] = useState<boolean[]>([]);
   const [menuSource, setMenuSource] = useState<MenuSource>("default");
   const [menuPickerIndex, setMenuPickerIndex] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -290,15 +491,40 @@ export default function SubscriptionClient() {
   );
   const deadline = useMemo(() => deadlineOf(subscription), [subscription]);
   const deadlineLabel = formatDateLabel(deadline.toISOString(), true);
-  const draftProductIds = productIdsOf(draftMenu);
-  const savedProductIds = productIdsOf(weeklyMenu);
-  const draftMenuAmount = draftMenu.reduce(
+  const normalizedDraftSkippedDays = normalizeSkippedDays(
+    draftSkippedDays,
+    currentPlan.meals,
+  );
+  const normalizedWeeklySkippedDays = normalizeSkippedDays(
+    weeklySkippedDays,
+    currentPlan.meals,
+  );
+  const activeDraftMenu = activeMenuSlots(
+    draftMenu,
+    normalizedDraftSkippedDays,
+    currentPlan.meals,
+  );
+  const draftProductIds = productIdsOf(activeDraftMenu);
+  const selectedMealCount = draftProductIds.length;
+  const skippedDayCount = normalizedDraftSkippedDays.filter(Boolean).length;
+  const allMenuDaysResolved = Array.from(
+    { length: currentPlan.meals },
+    (_, index) =>
+      Boolean(activeDraftMenu[index]) || normalizedDraftSkippedDays[index],
+  ).every(Boolean);
+  const draftMenuAmount = activeDraftMenu.reduce(
     (sum, product) => sum + (product ? getProductPrice(product) : 0),
     0,
   );
-  const menuComplete = draftProductIds.length === currentPlan.meals;
+  const menuComplete = selectedMealCount >= MIN_MEALS && allMenuDaysResolved;
   const menuChanged =
-    menuComplete && draftProductIds.join(",") !== savedProductIds.join(",");
+    menuComplete &&
+    menuSignature(
+      activeDraftMenu,
+      normalizedDraftSkippedDays,
+      currentPlan.meals,
+    ) !==
+      menuSignature(weeklyMenu, normalizedWeeklySkippedDays, currentPlan.meals);
   const mealsChanged = Boolean(subscription) && draftMeals !== currentMeals;
   const canEdit = current && status !== "CANCELED";
 
@@ -430,6 +656,8 @@ export default function SubscriptionClient() {
       if (!subscription) {
         setWeeklyMenu([]);
         setDraftMenu([]);
+        setWeeklySkippedDays([]);
+        setDraftSkippedDays([]);
       }
       return;
     }
@@ -438,9 +666,16 @@ export default function SubscriptionClient() {
     const slots = hasApiMenu
       ? normalizeWeeklyMenu(subscription, catalog, currentPlan.meals)
       : completeWeeklyMenu([], catalog, currentPlan.meals);
+    const skippedDays = skippedDaysFromSubscription(
+      subscription,
+      currentPlan.meals,
+    );
+    const visibleSlots = activeMenuSlots(slots, skippedDays, currentPlan.meals);
 
-    setWeeklyMenu(slots);
-    setDraftMenu(slots);
+    setWeeklyMenu(visibleSlots);
+    setDraftMenu(visibleSlots);
+    setWeeklySkippedDays(skippedDays);
+    setDraftSkippedDays(skippedDays);
     setMenuSource(hasApiMenu ? "api" : "default");
   }, [
     catalog,
@@ -511,37 +746,107 @@ export default function SubscriptionClient() {
       next[menuPickerIndex] = product;
       return next;
     });
+    setDraftSkippedDays((items) => {
+      const next = normalizeSkippedDays(items, currentPlan.meals);
+      next[menuPickerIndex] = false;
+      return next;
+    });
     setMenuPickerIndex(null);
+  };
+
+  const toggleSkippedDay = (index: number) => {
+    if (!canEdit) return;
+
+    const currentlySkipped = Boolean(normalizedDraftSkippedDays[index]);
+    if (
+      !currentlySkipped &&
+      Boolean(activeDraftMenu[index]) &&
+      selectedMealCount <= MIN_MEALS
+    ) {
+      toast(`구독은 최소 주 ${MIN_MEALS}끼부터 가능해요.`, "error");
+      return;
+    }
+
+    setDraftSkippedDays((items) => {
+      const next = normalizeSkippedDays(items, currentPlan.meals);
+      next[index] = !currentlySkipped;
+      return next;
+    });
+
+    if (!currentlySkipped) {
+      setDraftMenu((items) => {
+        const next = Array.from(
+          { length: currentPlan.meals },
+          (_, slotIndex) => items[slotIndex] ?? null,
+        );
+        next[index] = null;
+        return next;
+      });
+    }
+  };
+
+  const validateMenuBeforeSubmit = () => {
+    if (selectedMealCount < MIN_MEALS) {
+      toast(`구독은 최소 주 ${MIN_MEALS}끼부터 가능해요.`, "error");
+      return false;
+    }
+    if (!allMenuDaysResolved) {
+      toast(
+        "비어 있는 요일은 메뉴를 선택하거나 쉬어가기를 설정해주세요.",
+        "error",
+      );
+      return false;
+    }
+    return true;
   };
 
   const saveMenu = async () => {
     if (!subscription || subscriptionId <= 0 || !canEdit) return;
-    if (!menuComplete) {
-      toast(
-        `메뉴 수량 합계가 주 ${currentPlan.meals}끼와 같아야 합니다.`,
-        "error",
-      );
-      return;
-    }
+    if (!validateMenuBeforeSubmit()) return;
 
     setAction("menu");
     try {
-      const request: SubscriptionChangeMenuRequest = {
-        selection: selectionFromSlots(draftMenu),
-      };
-      const data = await applyDetailResponse(
-        await apiFetch(`/api/subscriptions/${subscriptionId}/menu`, {
+      const request = menuChangePayload(
+        activeDraftMenu,
+        normalizedDraftSkippedDays,
+        currentPlan.meals,
+      );
+      const response = await apiFetch(
+        `/api/subscriptions/${subscriptionId}/menu`,
+        {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify(request),
-        }),
-        "이번 회차 메뉴 저장에 실패했습니다.",
+        },
       );
+      if (handleAuthFailure(response)) return;
+      if (!response.ok) {
+        const message = await readApiMessage(
+          response,
+          "이번 회차 메뉴 저장에 실패했습니다.",
+        );
+        toast(
+          skippedDayCount > 0 && isMealCountMismatchMessage(message)
+            ? "쉬어가기를 포함해 이번 주 메뉴를 저장하려면 서버 검증 반영이 필요합니다."
+            : message,
+          "error",
+        );
+        return;
+      }
+
+      const data = (await response
+        .json()
+        .catch(() => null)) as SubscriptionResponse | null;
       if (data) {
-        setWeeklyMenu(draftMenu);
+        mergeSubscription(data);
+        void loadCycles(subscriptionIdOf(data));
+        setWeeklyMenu(activeDraftMenu);
+        setDraftMenu(activeDraftMenu);
+        setWeeklySkippedDays(normalizedDraftSkippedDays);
+        setDraftSkippedDays(normalizedDraftSkippedDays);
         setMenuSource("api");
-        toast("이번 회차 메뉴를 저장했습니다.");
+        toast("이번 주 메뉴는 고정됩니다.");
       }
     } catch {
       toast("서버와 통신 중 문제가 발생했습니다.", "error");
@@ -551,13 +856,16 @@ export default function SubscriptionClient() {
   };
 
   const checkoutNow = async () => {
-    if (!subscription || subscriptionId <= 0 || !menuComplete) return;
+    if (!subscription || subscriptionId <= 0) return;
+    if (!validateMenuBeforeSubmit()) return;
 
     setAction("checkout");
     try {
-      const request: SubscriptionChangeMenuRequest = {
-        selection: selectionFromSlots(draftMenu),
-      };
+      const request = menuChangePayload(
+        activeDraftMenu,
+        normalizedDraftSkippedDays,
+        currentPlan.meals,
+      );
       const response = await apiFetch(
         `/api/subscriptions/${subscriptionId}/checkout`,
         {
@@ -989,9 +1297,13 @@ export default function SubscriptionClient() {
             menuChanged={menuChanged}
             menuSource={menuSource}
             saving={action === "menu"}
+            selectedMealCount={selectedMealCount}
+            skippedDayCount={skippedDayCount}
+            skippedDays={normalizedDraftSkippedDays}
             slots={draftMenu}
             onPickSlot={setMenuPickerIndex}
             onSave={() => void saveMenu()}
+            onToggleSkippedDay={toggleSkippedDay}
           />
 
           <section className="mt-6 rounded-xl border border-background-200 bg-white p-5 shadow-sm md:p-6">
@@ -1199,7 +1511,11 @@ export default function SubscriptionClient() {
       {menuPickerIndex !== null && (
         <MenuPickerModal
           catalog={catalog}
-          currentProductId={draftMenu[menuPickerIndex]?.productId}
+          currentProductId={
+            normalizedDraftSkippedDays[menuPickerIndex]
+              ? undefined
+              : draftMenu[menuPickerIndex]?.productId
+          }
           loading={catalogLoading}
           onClose={() => setMenuPickerIndex(null)}
           onSelect={selectMenuProduct}
@@ -1455,9 +1771,13 @@ function WeeklyMenuSection({
   menuChanged,
   menuSource,
   saving,
+  selectedMealCount,
+  skippedDayCount,
+  skippedDays,
   slots,
   onPickSlot,
   onSave,
+  onToggleSkippedDay,
 }: {
   active: boolean;
   catalogLoading: boolean;
@@ -1468,14 +1788,19 @@ function WeeklyMenuSection({
   menuChanged: boolean;
   menuSource: MenuSource;
   saving: boolean;
+  selectedMealCount: number;
+  skippedDayCount: number;
+  skippedDays: boolean[];
   slots: MenuSlot[];
   onPickSlot: (index: number) => void;
   onSave: () => void;
+  onToggleSkippedDay: (index: number) => void;
 }) {
   const displaySlots = Array.from(
     { length: mealCount },
     (_, index) => slots[index] ?? null,
   );
+  const displaySkippedDays = normalizeSkippedDays(skippedDays, mealCount);
   const canSave =
     active && menuComplete && (menuChanged || menuSource === "default");
 
@@ -1496,7 +1821,15 @@ function WeeklyMenuSection({
             {deadlineLabel}까지 변경 가능 · 남은 시간 {countdown}
           </p>
           <p className="mt-1 text-xs text-foreground-400">
-            같은 메뉴도 여러 끼에 중복 선택할 수 있습니다.
+            최소 주 {MIN_MEALS}끼는 선택해야 하고, 남는 요일은 쉬어갈 수
+            있습니다.
+          </p>
+          <p className="mt-1 text-xs text-foreground-400">
+            쉬어가기는 이번 주에만 해당돼요.
+          </p>
+          <p className="mt-2 text-xs font-semibold text-foreground-500">
+            선택 {selectedMealCount}끼
+            {skippedDayCount > 0 ? ` · 쉬어가기 ${skippedDayCount}일` : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -1527,19 +1860,27 @@ function WeeklyMenuSection({
             {displaySlots.map((product, index) => (
               <WeeklyMenuSlot
                 key={
-                  product ? `${product.productId}-${index}` : `empty-${index}`
+                  product
+                    ? `${product.productId}-${index}`
+                    : displaySkippedDays[index]
+                      ? `skip-${index}`
+                      : `empty-${index}`
                 }
                 disabled={!active || catalogLoading}
                 index={index}
                 product={product}
+                skipped={displaySkippedDays[index]}
                 onPick={() => onPickSlot(index)}
+                onToggleSkipped={() => onToggleSkippedDay(index)}
               />
             ))}
           </div>
         )}
         {!menuComplete && !catalogLoading && (
           <p className="mt-3 text-xs font-semibold text-red-500">
-            메뉴 수량 합계가 주 {mealCount}끼와 같아야 저장할 수 있습니다.
+            {selectedMealCount < MIN_MEALS
+              ? `구독은 최소 주 ${MIN_MEALS}끼부터 가능해요.`
+              : "비어 있는 요일은 메뉴를 선택하거나 쉬어가기를 설정해주세요."}
           </p>
         )}
       </div>
@@ -1551,55 +1892,98 @@ function WeeklyMenuSlot({
   product,
   index,
   disabled,
+  skipped,
   onPick,
+  onToggleSkipped,
 }: {
   product: Product | null;
   index: number;
   disabled: boolean;
+  skipped: boolean;
   onPick: () => void;
+  onToggleSkipped: () => void;
 }) {
   const parts = splitName(product?.name);
 
   return (
-    <article className="flex min-h-28 gap-3 rounded-lg bg-background-100 p-3">
-      <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-white">
-        {product ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={product.imageUrl || PRODUCT_PLACEHOLDER}
-            alt={parts.title}
-            className="h-full w-full object-cover"
-            onError={(event) => {
-              event.currentTarget.src = PRODUCT_PLACEHOLDER;
-            }}
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center text-2xl text-foreground-300">
-            <i className="ri-restaurant-line" />
-          </div>
-        )}
+    <article
+      className={`flex min-h-36 flex-col gap-3 rounded-lg p-3 ${
+        skipped
+          ? "border border-yellow-100 bg-yellow-50/80"
+          : "bg-background-100"
+      }`}
+    >
+      <div className="flex min-w-0 gap-3">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-white">
+          {skipped ? (
+            <div className="flex h-full w-full items-center justify-center text-2xl text-yellow-600">
+              <i className="ri-pause-circle-line" />
+            </div>
+          ) : product ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={product.imageUrl || PRODUCT_PLACEHOLDER}
+              alt={parts.title}
+              className="h-full w-full object-cover"
+              onError={(event) => {
+                event.currentTarget.src = PRODUCT_PLACEHOLDER;
+              }}
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-2xl text-foreground-300">
+              <i className="ri-restaurant-line" />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <p
+            className={`text-xs font-bold ${skipped ? "text-yellow-700" : "text-primary-600"}`}
+          >
+            {DAY_LABELS[index % 7]}요일
+          </p>
+          <h3 className="mt-1 clamp-2 text-sm font-bold leading-snug text-foreground-950">
+            {skipped ? "쉬어가기" : product ? parts.title : "메뉴 선택"}
+          </h3>
+          <p className="mt-1 text-xs text-foreground-500">
+            {skipped
+              ? "이 날 상품은 없어요"
+              : product
+                ? parts.serving || product.unit || "1인분 밀키트"
+                : "비어 있음"}
+          </p>
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-bold text-primary-600">
-          {DAY_LABELS[index % 7]}요일
-        </p>
-        <h3 className="mt-1 clamp-2 text-sm font-bold leading-snug text-foreground-950">
-          {product ? parts.title : "메뉴 선택"}
-        </h3>
-        <p className="mt-1 text-xs text-foreground-500">
-          {product
-            ? parts.serving || product.unit || "1인분 밀키트"
-            : "비어 있음"}
-        </p>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onPick}
+          disabled={disabled}
+          className="h-9 rounded-lg border border-background-200 bg-white px-3 text-xs font-bold leading-none text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 disabled:opacity-40"
+        >
+          {skipped ? "메뉴 선택" : product ? "변경" : "선택"}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleSkipped}
+          disabled={disabled}
+          aria-pressed={skipped}
+          className={`h-9 rounded-lg px-3 text-xs font-bold leading-none transition-colors disabled:opacity-40 ${
+            skipped
+              ? "bg-yellow-600 text-white hover:bg-yellow-700"
+              : "border border-background-200 bg-white text-foreground-600 hover:border-yellow-200 hover:text-yellow-700"
+          }`}
+        >
+          {skipped ? (
+            "쉬어가기 해제"
+          ) : (
+            <>
+              하루
+              <br />
+              쉬어가기
+            </>
+          )}
+        </button>
       </div>
-      <button
-        type="button"
-        onClick={onPick}
-        disabled={disabled}
-        className="self-start rounded-lg border border-background-200 bg-white px-3 py-2 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 disabled:opacity-40"
-      >
-        {product ? "변경" : "선택"}
-      </button>
     </article>
   );
 }
@@ -1851,13 +2235,10 @@ function CycleSection({
                     </td>
                     <td className="px-5 py-3">{cycleStatusLabel(cycle)}</td>
                     <td className="px-5 py-3">
-                      {formatDateLabel(
-                        cycle.billingDate || cycle.billingAt || cycle.paidAt,
-                        true,
-                      )}
+                      {formatDateLabel(cyclePaymentDateOf(cycle), true)}
                     </td>
                     <td className="px-5 py-3">
-                      {formatDateLabel(cycle.deliveryDate || cycle.deliveredAt)}
+                      {formatDateLabel(cycleDeliveryDateOf(cycle))}
                     </td>
                     <td className="px-5 py-3">
                       {Number(cycle.failedAttempts ?? cycle.retryCount ?? 0)}

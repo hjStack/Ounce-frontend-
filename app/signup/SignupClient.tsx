@@ -28,6 +28,10 @@ export default function SignupClient() {
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
 
+  const handleKakaoPreviewClick = () => {
+    toast("카카오톡 로그인은 아직 준비 중입니다.", "error");
+  };
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setErrors({});
@@ -167,7 +171,7 @@ export default function SignupClient() {
                 label="이메일"
                 value={email}
                 error={errors.email}
-                placeholder="이메일 (예: example@ounce.com)을 입력하세요"
+                placeholder="이메일 형식으로 입력하세요"
                 onChange={setEmail}
               />
               <PasswordField
@@ -206,13 +210,24 @@ export default function SignupClient() {
               <div className="h-px flex-1 bg-background-200" />
             </div>
 
-            <a
-              href="/oauth2/authorization/google"
-              onClick={() => markSignupBenefitToastPending("check")}
-              className="flex w-full items-center justify-center gap-2 rounded-lg border border-background-200 py-3 text-sm font-medium text-foreground-700 transition-colors hover:bg-background-50"
-            >
-              <i className="ri-google-fill text-base" /> Google로 계속하기
-            </a>
+            <div className="flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={handleKakaoPreviewClick}
+                className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] py-3 text-sm font-bold text-[#191919] transition-colors hover:bg-[#f7dc00]"
+              >
+                <i className="ri-kakao-talk-fill text-base" />
+                카카오톡으로 계속하기
+              </button>
+
+              <a
+                href="/oauth2/authorization/google"
+                onClick={() => markSignupBenefitToastPending("oauth-signup")}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-background-200 py-3 text-sm font-medium text-foreground-700 transition-colors hover:bg-background-50"
+              >
+                <i className="ri-google-fill text-base" /> Google로 계속하기
+              </a>
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-sm text-foreground-500">
