@@ -246,7 +246,7 @@ export default function Navbar() {
 
   if (isAuthPage) {
     return (
-      <nav className="fixed left-0 right-0 top-0 z-50 border-b border-background-200/70 bg-background-cream/95 backdrop-blur-md">
+      <nav className="fixed left-0 right-0 top-0 z-50 border-b border-background-200 backdrop-blur-md">
         <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 md:h-20 md:px-8 lg:px-12">
           <Link href="/" className="flex shrink-0 items-center gap-2">
             <span className="font-heading text-xl font-semibold tracking-tight text-foreground-950 md:text-2xl">
@@ -255,15 +255,15 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {isSignupPage && (
+            {isSignupPage ? (
               <Link
-                href="/login"
-                className="inline-flex h-9 items-center rounded-md px-2 text-xs font-bold text-foreground-700 transition-colors hover:text-primary-700 sm:px-3 sm:text-sm"
+                href="/products"
+                className="inline-flex h-9 items-center rounded-md border border-background-200 bg-white px-3 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:text-sm"
               >
-                로그인
+                <span className="sm:hidden">밀키트</span>
+                <span className="hidden sm:inline">밀키트 보러가기</span>
               </Link>
-            )}
-            {!isSignupPage && (
+            ) : (
               <Link
                 href="/products"
                 className="inline-flex h-9 items-center rounded-md border border-background-200 bg-white px-3 text-xs font-bold text-foreground-700 transition-colors hover:border-primary-200 hover:text-primary-700 sm:px-4 sm:text-sm"
@@ -272,6 +272,7 @@ export default function Navbar() {
                 <span className="hidden sm:inline">밀키트 보러가기</span>
               </Link>
             )}
+
             <button
               type="button"
               onClick={openSearch}

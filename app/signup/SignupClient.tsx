@@ -28,9 +28,9 @@ export default function SignupClient() {
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
 
-  const handleKakaoPreviewClick = () => {
-    toast("카카오톡 로그인은 아직 준비 중입니다.", "error");
-  };
+  // const handleKakaoPreviewClick = () => {
+  //   toast("카카오톡 로그인은 아직 준비 중입니다.", "error");
+  // };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

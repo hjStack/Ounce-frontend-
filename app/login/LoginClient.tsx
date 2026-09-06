@@ -33,9 +33,9 @@ export default function LoginClient() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleKakaoPreviewClick = () => {
-    toast("카카오톡 로그인은 아직 준비 중입니다.", "error");
-  };
+  // const handleKakaoPreviewClick = () => {
+  //   toast("카카오톡 로그인은 아직 준비 중입니다.", "error");
+  // };
 
   useEffect(() => {
     if (!welcome) return;
