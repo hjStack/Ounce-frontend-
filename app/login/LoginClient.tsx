@@ -184,7 +184,7 @@ export default function LoginClient() {
             <div className="mt-6 text-center">
               <Link
                 href="/forgot-password"
-                className="text-xs text-foreground-400 transition-colors hover:text-foreground-600"
+                className="text-xs text-stone-600 hover:text-stone-600"
               >
                 비밀번호 찾기
               </Link>
@@ -220,7 +220,7 @@ export default function LoginClient() {
                 아직 계정이 없으신가요?{" "}
                 <Link
                   href="/signup"
-                  className="font-medium text-primary-600 hover:text-primary-700"
+                  className="font-medium text-stone-600 hover:text-stone-600"
                 >
                   회원가입
                 </Link>

@@ -122,15 +122,14 @@ export default function ForgotPasswordPage() {
                     {submitting ? "전송 중..." : "재설정 링크 받기"}
                   </button>
                 </form>
-
-                <div className="mt-6 text-center">
-                  <Link
-                    href="/login"
-                    className="text-xs text-foreground-400 transition-colors hover:text-foreground-600"
-                  >
-                    로그인으로 돌아가기
-                  </Link>
-                </div>
+                <div className="mt-6">
+                <Link
+  href="/login"
+  className="mt-6 block w-full rounded-lg bg-primary-600 py-3.5 text-center font-medium text-white shadow-sm transition hover:bg-primary-700 hover:shadow-md active:scale-[0.99]"
+>
+  로그인으로 돌아가기
+</Link>
+</div>
               </>
             )}
           </div>

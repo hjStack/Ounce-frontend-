@@ -234,7 +234,7 @@ export default function SignupClient() {
                 이미 계정이 있으신가요?{" "}
                 <Link
                   href="/login"
-                  className="font-medium text-primary-600 hover:text-primary-700"
+                  className="font-medium text-stone-600 hover:text-stone-600"
                 >
                   로그인
                 </Link>
