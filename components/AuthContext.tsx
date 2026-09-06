@@ -24,6 +24,12 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/** 인증 관련 요청은 자동 갱신·리다이렉트 없이 한 번만 호출한다 */
+const NO_AUTO_AUTH = {
+  redirectOnUnauthorized: false,
+  refreshOnUnauthorized: false,
+} as const;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Member | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,36 +54,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     try {
-      await apiFetch("/api/auth/refresh", {
+      await apiFetch("/api/members/logout", {
         method: "POST",
         credentials: "include",
-        auth: {
-          redirectOnUnauthorized: false,
-          refreshOnUnauthorized: false,
-        },
-      }).catch(() => undefined);
-      const res = await apiFetch("/api/members/logout", {
-        method: "POST",
-        credentials: "include",
-        auth: {
-          redirectOnUnauthorized: false,
-          refreshOnUnauthorized: false,
-        },
+        auth: NO_AUTO_AUTH,
       });
-      if (res.status === 404) {
-        await apiFetch("/logout", {
-          method: "POST",
-          credentials: "include",
-          auth: {
-            redirectOnUnauthorized: false,
-            refreshOnUnauthorized: false,
-          },
-        });
-      }
     } catch (err) {
       console.error("로그아웃 요청 실패:", err);
+    } finally {
+      setUser(null);
     }
-    setUser(null);
   }, []);
 
   const value = useMemo<AuthContextValue>(

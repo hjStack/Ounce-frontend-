@@ -53,6 +53,7 @@ export default function Navbar() {
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
+
   const showAuthenticated = isAuthenticated;
   const showAdmin = isAdmin;
   const showGuest = !isAuthenticated;

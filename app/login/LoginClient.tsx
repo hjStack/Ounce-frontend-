@@ -181,6 +181,15 @@ export default function LoginClient() {
               </button>
             </form>
 
+            <div className="mt-6 text-center">
+              <Link
+                href="/forgot-password"
+                className="text-xs text-foreground-400 transition-colors hover:text-foreground-600"
+              >
+                비밀번호 찾기
+              </Link>
+            </div>
+
             <div className="my-6 flex items-center gap-4">
               <div className="h-px flex-1 bg-background-200" />
               <span className="text-xs text-foreground-400">또는</span>
@@ -188,14 +197,14 @@ export default function LoginClient() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <button
+              {/* <button
                 type="button"
                 onClick={handleKakaoPreviewClick}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] py-3 text-sm font-bold text-[#191919] transition-colors hover:bg-[#f7dc00]"
               >
                 <i className="ri-kakao-talk-fill text-base" />
                 카카오톡으로 계속하기
-              </button>
+              </button> */}
 
               <a
                 href="/oauth2/authorization/google"

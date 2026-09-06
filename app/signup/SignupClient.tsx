@@ -211,14 +211,14 @@ export default function SignupClient() {
             </div>
 
             <div className="flex flex-col gap-3">
-              <button
+              {/* <button
                 type="button"
                 onClick={handleKakaoPreviewClick}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-[#FEE500] py-3 text-sm font-bold text-[#191919] transition-colors hover:bg-[#f7dc00]"
               >
                 <i className="ri-kakao-talk-fill text-base" />
                 카카오톡으로 계속하기
-              </button>
+              </button> */}
 
               <a
                 href="/oauth2/authorization/google"
