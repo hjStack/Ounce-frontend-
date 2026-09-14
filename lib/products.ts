@@ -11,6 +11,25 @@ export const PRODUCT_PLACEHOLDER =
       "</svg>",
   );
 
+const LEGACY_CDN_HOST = "e298ybk7j4ytvm.cloudfront.net";
+const PRODUCT_CDN_URL = "https://cdn.ouncefresh.com";
+
+/** Replace the retired CDN hostname still present in some product records. */
+export function resolveProductImageUrl(imageUrl?: string | null) {
+  if (!imageUrl) return "";
+
+  try {
+    const url = new URL(imageUrl);
+    if (url.hostname.toLowerCase() === LEGACY_CDN_HOST) {
+      return `${PRODUCT_CDN_URL}${url.pathname}${url.search}`;
+    }
+  } catch {
+    // Keep non-URL values unchanged so the image error handler can report them.
+  }
+
+  return imageUrl;
+}
+
 export const CATEGORIES: Category[] = [
   {
     key: "stew",
@@ -146,7 +165,22 @@ export async function fetchProducts(params: {
     credentials: "include",
   });
   if (!res.ok) throw new Error(`상품 조회 실패: ${res.status}`);
-  return (await res.json()) as ProductSliceResponse;
+  const data = (await res.json()) as ProductSliceResponse;
+  return {
+    ...data,
+    products: data.products?.map((product) => ({
+      ...product,
+      imageUrl: resolveProductImageUrl(product.imageUrl),
+    })),
+    content: data.content?.map((product) => ({
+      ...product,
+      imageUrl: resolveProductImageUrl(product.imageUrl),
+    })),
+    items: data.items?.map((product) => ({
+      ...product,
+      imageUrl: resolveProductImageUrl(product.imageUrl),
+    })),
+  };
 }
 
 export async function fetchCatalog(size = 100) {

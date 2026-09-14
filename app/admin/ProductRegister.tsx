@@ -16,7 +16,11 @@ import {
   prepareProductImage,
   readableFileSize,
 } from "../../lib/product-images";
-import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import {
+  PRODUCT_PLACEHOLDER,
+  resolveProductImageUrl,
+  won,
+} from "../../lib/products";
 import type { Product, ProductSliceResponse } from "../../types/api";
 import { apiFetch } from "@/lib/api";
 
@@ -52,7 +56,7 @@ export default function ProductRegister() {
   const { toast, confirm } = useToast();
   const [form, setForm] = useState(INITIAL_FORM);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [imageNotice, setImageNotice] = useState("");
   const [detailImageFile, setDetailImageFile] = useState<File | null>(null);
   const [detailImagePreviewUrl, setDetailImagePreviewUrl] = useState("");
@@ -74,7 +78,14 @@ export default function ProductRegister() {
       });
       if (!response.ok) throw new Error("PRODUCT_LOAD_FAILED");
       const data = (await response.json()) as ProductSliceResponse;
-      setProducts(data.products ?? data.content ?? data.items ?? []);
+      console.log("관리자 상품 응답:", data);
+      console.log("첫 상품 imageUrl:", data.products?.[0]?.imageUrl);
+      setProducts(
+        (data.products ?? data.content ?? data.items ?? []).map((product) => ({
+          ...product,
+          imageUrl: resolveProductImageUrl(product.imageUrl),
+        })),
+      );
     } catch {
       setProducts([]);
     } finally {
@@ -99,12 +110,12 @@ export default function ProductRegister() {
 
   useEffect(() => {
     if (!imageFile) {
-      setImagePreviewUrl("");
+      setImageUrl("");
       return;
     }
 
     const previewUrl = URL.createObjectURL(imageFile);
-    setImagePreviewUrl(previewUrl);
+    setImageUrl(previewUrl);
 
     return () => URL.revokeObjectURL(previewUrl);
   }, [imageFile]);
@@ -574,10 +585,10 @@ export default function ProductRegister() {
             htmlFor="product-image-upload"
             className="mt-4 flex aspect-square cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 text-center transition-colors hover:border-primary-300 hover:bg-primary-50/40"
           >
-            {imagePreviewUrl ? (
+            {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={imagePreviewUrl}
+                src={imageUrl}
                 alt="선택한 상품 이미지 미리보기"
                 className="h-full w-full object-cover"
               />
@@ -674,10 +685,14 @@ export default function ProductRegister() {
                       <div className="flex items-center gap-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={product.imageUrl || PRODUCT_PLACEHOLDER}
+                          src={resolveProductImageUrl(product.imageUrl) || PRODUCT_PLACEHOLDER}
                           alt=""
                           className="h-12 w-12 rounded-lg bg-gray-100 object-cover"
+                          onLoad={(event) =>
+                            console.log("이미지 성공:", event.currentTarget.src)
+                          }
                           onError={(event) => {
+                            console.log("이미지 실패:", event.currentTarget.src);
                             event.currentTarget.src = PRODUCT_PLACEHOLDER;
                           }}
                         />
