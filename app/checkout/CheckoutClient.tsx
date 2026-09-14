@@ -16,7 +16,14 @@ import {
   formatCouponDate,
   getCouponId,
 } from "../../lib/coupons";
-import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import { getProductPrice, PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import {
+  getTimeDealState,
+  isAvailableTimeDeal,
+  readServerTimeMs,
+  readTimeDealProducts,
+  type TimeDealPayload,
+} from "../../lib/timedeal";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "../../lib/shipping";
 import {
   hasSubscriptionFreeShippingBenefit,
@@ -292,6 +299,42 @@ export default function CheckoutClient() {
 
     setSubmitting(true);
     try {
+      const timeDealItems = cart.filter((item) => item.timeDeal);
+      if (timeDealItems.length > 0) {
+        const timeDealResponse = await apiFetch("/api/timedeal", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        const timeDealPayload =
+          (await timeDealResponse.json()) as TimeDealPayload;
+        const serverTimeMs =
+          readServerTimeMs(timeDealResponse, timeDealPayload) ?? Date.now();
+
+        if (!getTimeDealState(serverTimeMs).active) {
+          toast("미드나이트 세일이 종료되어 주문할 수 없습니다.", "error");
+          return;
+        }
+
+        const latestProducts = readTimeDealProducts(timeDealPayload);
+        const unavailable = timeDealItems.some((item) => {
+          const latest = latestProducts.find(
+            (product) => product.productId === item.productId,
+          );
+          return (
+            !isAvailableTimeDeal(latest) ||
+            Number(latest?.stock || 0) < item.quantity ||
+            Number(latest && getProductPrice(latest)) !== Number(item.finalPrice)
+          );
+        });
+        if (unavailable) {
+          toast(
+            "타임딜 상품의 재고 또는 가격이 변경되었습니다. 장바구니를 확인해주세요.",
+            "error",
+          );
+          return;
+        }
+      }
+
       const res = await apiFetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -542,8 +585,12 @@ export default function CheckoutClient() {
                     id="receiver-phone"
                     label="연락처"
                     value={receiverPhone}
-                    onChange={setReceiverPhone}
+                    onChange={(value) =>
+                      setReceiverPhone(formatPhoneNumber(value))
+                    }
                     placeholder="010-0000-0000"
+                    inputMode="tel"
+                    maxLength={13}
                   />
                   <div className="flex flex-col gap-1.5 md:col-span-2">
                     <label
@@ -983,6 +1030,8 @@ function Input({
   onChange,
   placeholder,
   readOnly = false,
+  inputMode,
+  maxLength,
 }: {
   id: string;
   label: string;
@@ -990,6 +1039,8 @@ function Input({
   onChange: (value: string) => void;
   placeholder: string;
   readOnly?: boolean;
+  inputMode?: "text" | "tel";
+  maxLength?: number;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -1003,12 +1054,24 @@ function Input({
         onChange={(event) => onChange(event.target.value)}
         readOnly={readOnly}
         placeholder={placeholder}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className={`h-12 w-full rounded-lg border border-gray-200 px-4 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-[#447861] focus:ring-2 focus:ring-[#447861]/10 ${
           readOnly ? "cursor-default bg-gray-100 text-gray-700" : "bg-gray-50"
         }`}
       />
     </div>
   );
+}
+
+function formatPhoneNumber(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+
+  if (digits.length <= 3) return digits;
+  if (digits.length <= 7) {
+    return `${digits.slice(0, 3)}-${digits.slice(3)}`;
+  }
+  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`;
 }
 
 function SummaryRow({

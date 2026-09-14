@@ -67,6 +67,7 @@ export interface Product {
     basePrice: number;
     salePrice?: number | null;
     discountPercent?: number | null;
+    subscriptionDiscountPercent?: number | null;
     description?: string | null;
     imageUrl?: string | null;
     stock: number;
@@ -103,6 +104,8 @@ export interface Review {
     writerName: string;
     rating: number;
     content: string;
+    imageUrl?: string | null;
+    imageUrls?: string[] | null;
     createdAt?: string;
 }
 

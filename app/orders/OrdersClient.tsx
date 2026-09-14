@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useToast } from "../../components/ToastContext";
@@ -186,6 +187,12 @@ export default function OrdersClient() {
                             {won(order.totalAmount)}
                           </span>
                         </div>
+                        <Link
+                          href={`/orders/${order.orderId}`}
+                          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+                        >
+                          상세 정보 보기 <i className="ri-arrow-right-line" />
+                        </Link>
                       </div>
                     )}
                   </article>

@@ -23,6 +23,7 @@ type MemberListResponse = PageResponse<AdminMember> & {
   results?: AdminMember[];
   totalCount?: number;
   total?: number;
+  totalPoint?: number;
 };
 
 function readMembers(data: MemberListResponse | AdminMember[]) {
@@ -120,6 +121,7 @@ export default function AdminMembersClient() {
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
+  const [totalPoints, setTotalPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [forbidden, setForbidden] = useState(false);
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -138,6 +140,7 @@ export default function AdminMembersClient() {
       try {
         const response = await apiFetch(endpoint(nextPage), {
           credentials: "include",
+          cache: "no-store",
         });
         if (response.status === 401 || response.status === 403) {
           setForbidden(true);
@@ -164,6 +167,11 @@ export default function AdminMembersClient() {
         setPage(readPage(data, nextPage));
         setTotalPages(readTotalPages(data));
         setTotalElements(readTotal(data, nextMembers.length));
+        setTotalPoints(
+          Array.isArray(data)
+            ? nextMembers.reduce((sum, member) => sum + Number(member.point || 0), 0)
+            : Number(data.totalPoint ?? 0),
+        );
         setSelectedId((current) =>
           nextMembers.some((member) => member.memberId === current)
             ? current
@@ -180,6 +188,25 @@ export default function AdminMembersClient() {
 
   useEffect(() => {
     void loadMembers(0);
+  }, [loadMembers]);
+
+  useEffect(() => {
+    const refreshMembers = () => {
+      if (document.visibilityState === "hidden") return;
+      void loadMembers(0);
+    };
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === "ounce.member.created") refreshMembers();
+    };
+
+    window.addEventListener("focus", refreshMembers);
+    window.addEventListener("storage", handleStorage);
+    document.addEventListener("visibilitychange", refreshMembers);
+    return () => {
+      window.removeEventListener("focus", refreshMembers);
+      window.removeEventListener("storage", handleStorage);
+      document.removeEventListener("visibilitychange", refreshMembers);
+    };
   }, [loadMembers]);
 
   const filteredMembers = useMemo(() => {
@@ -228,10 +255,6 @@ export default function AdminMembersClient() {
         memberStatus(member).toUpperCase(),
       ),
     ).length;
-    const points = members.reduce(
-      (sum, member) => sum + Number(member.point || 0),
-      0,
-    );
     return [
       {
         label: "전체 회원",
@@ -250,11 +273,11 @@ export default function AdminMembersClient() {
       },
       {
         label: "총 포인트",
-        value: `${points.toLocaleString("ko-KR")}P`,
+        value: `${totalPoints.toLocaleString("ko-KR")}P`,
         icon: "ri-coin-line",
       },
     ];
-  }, [members, totalElements]);
+  }, [totalElements, totalPoints, members]);
 
   return (
     <AdminShell active="/admin/members" title="회원 관리">

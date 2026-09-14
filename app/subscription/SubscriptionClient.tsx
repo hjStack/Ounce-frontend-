@@ -150,16 +150,6 @@ function deadlineOf(subscription: SubscriptionResponse | null) {
   return nextSundayDeadline();
 }
 
-function formatRemaining(deadline: Date) {
-  const remain = deadline.getTime() - Date.now();
-  if (remain <= 0) return "마감";
-  const totalMinutes = Math.floor(remain / 60_000);
-  const days = Math.floor(totalMinutes / (60 * 24));
-  const hours = Math.floor(totalMinutes / 60) % 24;
-  const minutes = totalMinutes % 60;
-  return days > 0 ? `${days}일 ${hours}시간` : `${hours}시간 ${minutes}분`;
-}
-
 function hasMenuData(subscription: SubscriptionResponse | null) {
   if (!subscription) return false;
   return Boolean(
@@ -470,7 +460,6 @@ export default function SubscriptionClient() {
     dateInputValue(addDays(new Date(), 7)),
   );
   const [action, setAction] = useState<ActionKey>(null);
-  const [countdown, setCountdown] = useState("-");
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [skipApplied, setSkipApplied] = useState(false);
 
@@ -531,13 +520,6 @@ export default function SubscriptionClient() {
   useEffect(() => {
     clearLegacySubscriptionStore();
   }, []);
-
-  useEffect(() => {
-    const tick = () => setCountdown(formatRemaining(deadline));
-    tick();
-    const timer = window.setInterval(tick, 20_000);
-    return () => window.clearInterval(timer);
-  }, [deadline]);
 
   const mergeSubscription = useCallback(
     (nextSubscription: SubscriptionResponse) => {
@@ -839,7 +821,23 @@ export default function SubscriptionClient() {
         .json()
         .catch(() => null)) as SubscriptionResponse | null;
       if (data) {
-        mergeSubscription(data);
+        // 서버 응답에 skippedDays가 아직 포함되지 않는 경우에도
+        // 방금 저장한 화면 상태가 mergeSubscription 후 초기화되지 않게 한다.
+        const savedSkippedDays = skippedDayKeys(
+          normalizedDraftSkippedDays,
+          currentPlan.meals,
+        );
+        mergeSubscription({
+          ...data,
+          // 저장 직후 조회 응답이 이전 메뉴를 반환하더라도
+          // 방금 사용자가 확정한 다음 회차 메뉴를 우선 표시한다.
+          weeklyMenu: weeklyMenuPayload(
+            activeDraftMenu,
+            normalizedDraftSkippedDays,
+            currentPlan.meals,
+          ),
+          skippedDays: savedSkippedDays,
+        });
         void loadCycles(subscriptionIdOf(data));
         setWeeklyMenu(activeDraftMenu);
         setDraftMenu(activeDraftMenu);
@@ -1290,7 +1288,6 @@ export default function SubscriptionClient() {
           <WeeklyMenuSection
             active={canEdit}
             catalogLoading={catalogLoading}
-            countdown={countdown}
             deadlineLabel={deadlineLabel}
             mealCount={currentPlan.meals}
             menuComplete={menuComplete}
@@ -1764,7 +1761,6 @@ function DetailLine({
 function WeeklyMenuSection({
   active,
   catalogLoading,
-  countdown,
   deadlineLabel,
   mealCount,
   menuComplete,
@@ -1781,7 +1777,6 @@ function WeeklyMenuSection({
 }: {
   active: boolean;
   catalogLoading: boolean;
-  countdown: string;
   deadlineLabel: string;
   mealCount: number;
   menuComplete: boolean;
@@ -1818,7 +1813,7 @@ function WeeklyMenuSection({
             다음 회차 메뉴
           </h2>
           <p className="mt-1 text-sm text-foreground-500">
-            {deadlineLabel}까지 변경 가능 · 남은 시간 {countdown}
+            {deadlineLabel}까지 변경 가능
           </p>
           <p className="mt-1 text-xs text-foreground-400">
             최소 주 {MIN_MEALS}끼는 선택해야 하고, 남는 요일은 쉬어갈 수
@@ -1826,6 +1821,9 @@ function WeeklyMenuSection({
           </p>
           <p className="mt-1 text-xs text-foreground-400">
             쉬어가기는 이번 주에만 해당돼요.
+          </p>
+          <p className="mt-1 text-xs font-semibold text-primary-700">
+            메뉴를 변경하지 않으면 다음 회차에도 같은 메뉴가 자동 배송됩니다.
           </p>
           <p className="mt-2 text-xs font-semibold text-foreground-500">
             선택 {selectedMealCount}끼

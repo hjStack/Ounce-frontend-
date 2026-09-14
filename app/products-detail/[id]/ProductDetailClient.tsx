@@ -14,6 +14,7 @@ import { useAuth } from "../../../components/AuthContext";
 import { useCart } from "../../../components/CartContext";
 import { useToast } from "../../../components/ToastContext";
 import { formatDate } from "../../../lib/date";
+import { prepareProductImage, readableFileSize } from "../../../lib/product-images";
 import {
   getProductPrice,
   isDiscounted,
@@ -45,7 +46,20 @@ export default function ProductDetailClient({
   const [reviewOpen, setReviewOpen] = useState(false);
   const [selectedRating, setSelectedRating] = useState(5);
   const [reviewContent, setReviewContent] = useState("");
+  const [reviewImageFile, setReviewImageFile] = useState<File | null>(null);
+  const [reviewImagePreviewUrl, setReviewImagePreviewUrl] = useState("");
+  const [reviewImageNotice, setReviewImageNotice] = useState("");
   const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    if (!reviewImageFile) {
+      setReviewImagePreviewUrl("");
+      return;
+    }
+    const previewUrl = URL.createObjectURL(reviewImageFile);
+    setReviewImagePreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [reviewImageFile]);
 
   const loadReviews = useCallback(async () => {
     try {
@@ -174,11 +188,27 @@ export default function ProductDetailClient({
     }
 
     try {
+      const body = reviewImageFile
+        ? (() => {
+            const formData = new FormData();
+            formData.append(
+              "request",
+              new Blob(
+                [JSON.stringify({ rating: selectedRating, content })],
+                { type: "application/json" },
+              ),
+            );
+            formData.append("image", reviewImageFile);
+            return formData;
+          })()
+        : JSON.stringify({ rating: selectedRating, content });
       const res = await apiFetch(`/api/products/${productId}/reviews`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        ...(reviewImageFile
+          ? {}
+          : { headers: { "Content-Type": "application/json" } }),
         credentials: "include",
-        body: JSON.stringify({ rating: selectedRating, content }),
+        body,
       });
       if (res.status === 401) {
         await requireLogin();
@@ -191,6 +221,8 @@ export default function ProductDetailClient({
       toast("리뷰가 등록되었습니다.");
       setReviewOpen(false);
       setReviewContent("");
+      setReviewImageFile(null);
+      setReviewImageNotice("");
       setSelectedRating(5);
       await loadReviews();
     } catch {
@@ -330,6 +362,11 @@ export default function ProductDetailClient({
               {product.expirationDiscountText && (
                 <Tag className="bg-primary-500 text-white">
                   {product.expirationDiscountText}
+                </Tag>
+              )}
+              {Number(product.subscriptionDiscountPercent || 0) > 0 && (
+                <Tag className="bg-primary-500 text-white">
+                  구독 할인 {Number(product.subscriptionDiscountPercent)}%
                 </Tag>
               )}
               {product.unit && (
@@ -578,6 +615,8 @@ export default function ProductDetailClient({
                     }
                     setSelectedRating(5);
                     setReviewContent("");
+                    setReviewImageFile(null);
+                    setReviewImageNotice("");
                     setReviewOpen(true);
                   }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-primary-500 px-4 py-2 text-sm font-semibold text-primary-500 transition-colors hover:bg-primary-50"
@@ -629,6 +668,23 @@ export default function ProductDetailClient({
                         <p className="qna-body text-sm leading-relaxed text-foreground-700">
                           {review.content}
                         </p>
+                        {(review.imageUrl || review.imageUrls?.length) && (
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            {(review.imageUrls?.length
+                              ? review.imageUrls
+                              : [review.imageUrl]
+                            ).map((imageUrl) =>
+                              imageUrl ? (
+                                <img
+                                  key={imageUrl}
+                                  src={imageUrl}
+                                  alt="리뷰 첨부 이미지"
+                                  className="max-h-56 rounded-lg border border-background-200 object-contain"
+                                />
+                              ) : null,
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -691,6 +747,64 @@ export default function ProductDetailClient({
                 placeholder="상품은 어떠셨나요? 다른 고객에게 도움이 되는 후기를 남겨주세요."
                 className="min-h-32 w-full resize-y rounded-lg border border-background-200 px-3.5 py-3 text-sm leading-relaxed text-foreground-800 outline-none focus:border-primary-500"
               />
+              <label
+                htmlFor="review-image-upload"
+                className="mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-dashed border-background-300 px-3.5 text-xs font-semibold text-foreground-600 hover:border-primary-400 hover:text-primary-600"
+              >
+                <i className="ri-image-add-line text-base" />
+                리뷰 이미지 첨부
+                <input
+                  id="review-image-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={async (event) => {
+                    const file = event.target.files?.[0] ?? null;
+                    event.target.value = "";
+                    if (!file) return;
+                    try {
+                      const prepared = await prepareProductImage(file);
+                      setReviewImageFile(prepared);
+                      setReviewImageNotice(
+                        prepared.size < file.size
+                          ? `${readableFileSize(file.size)} 이미지를 ${readableFileSize(prepared.size)}로 줄였습니다.`
+                          : `${prepared.name} · ${readableFileSize(prepared.size)}`,
+                      );
+                    } catch (error) {
+                      setReviewImageFile(null);
+                      setReviewImageNotice("");
+                      toast(
+                        error instanceof Error
+                          ? error.message
+                          : "이미지를 처리하지 못했습니다.",
+                        "error",
+                      );
+                    }
+                  }}
+                />
+              </label>
+              {reviewImagePreviewUrl && (
+                <div className="relative mt-3 w-fit overflow-hidden rounded-lg border border-background-200">
+                  <img
+                    src={reviewImagePreviewUrl}
+                    alt="리뷰 이미지 미리보기"
+                    className="max-h-40 max-w-full object-contain"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReviewImageFile(null);
+                      setReviewImageNotice("");
+                    }}
+                    className="absolute right-1 top-1 rounded-full bg-black/60 px-2 py-1 text-xs text-white"
+                  >
+                    삭제
+                  </button>
+                </div>
+              )}
+              {reviewImageNotice && (
+                <p className="mt-1 text-xs text-foreground-400">{reviewImageNotice}</p>
+              )}
             </div>
             <div className="flex gap-2 px-5 pb-5">
               <button

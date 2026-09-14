@@ -54,6 +54,9 @@ export default function ProductCard({ product }: { product: Product }) {
   const parts = splitName(product.name);
   const state = stockState(product);
   const isTimeDeal = product.status === "TIME_DEAL";
+  const subscriptionDiscountPercent = Number(
+    product.subscriptionDiscountPercent || 0,
+  );
   const soldOut = state === "soldout";
 
   const addToCart = async () => {
@@ -120,6 +123,11 @@ export default function ProductCard({ product }: { product: Product }) {
           {parts.serving && (
             <span className="rounded-md bg-white/95 px-2 py-1 text-[11px] font-semibold text-foreground-700 shadow-sm backdrop-blur-sm">
               {parts.serving}
+            </span>
+          )}
+          {subscriptionDiscountPercent > 0 && (
+            <span className="rounded-md bg-primary-500 px-2 py-1 text-[11px] font-bold text-white shadow-sm">
+              구독 할인 {subscriptionDiscountPercent}%
             </span>
           )}
           {state === "low" && (

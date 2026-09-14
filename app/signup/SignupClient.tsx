@@ -71,6 +71,10 @@ export default function SignupClient() {
       });
 
       if (response.ok || response.status === 201) {
+        localStorage.setItem(
+          "ounce.member.created",
+          String(Date.now()),
+        );
         markSignupBenefitToastPending("expected");
         router.push("/login?welcome=true");
       } else if (response.status === 400 || response.status === 409) {

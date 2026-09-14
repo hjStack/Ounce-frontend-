@@ -42,6 +42,7 @@ const INITIAL_FORM = {
   name: "",
   basePrice: "",
   discountPercent: "0",
+  subscriptionDiscountPercent: "0",
   stock: "",
   status: "VISIBLE",
   categoryIds: "",
@@ -76,6 +77,9 @@ export default function AdminProductEditClient({
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [imageNotice, setImageNotice] = useState("");
+  const [detailImageFile, setDetailImageFile] = useState<File | null>(null);
+  const [detailImagePreviewUrl, setDetailImagePreviewUrl] = useState("");
+  const [detailImageNotice, setDetailImageNotice] = useState("");
   const [imageProcessing, setImageProcessing] = useState(false);
 
   useEffect(() => {
@@ -99,6 +103,9 @@ export default function AdminProductEditClient({
           name: data.name || "",
           basePrice: String(data.basePrice || ""),
           discountPercent: String(data.discountPercent ?? 0),
+          subscriptionDiscountPercent: String(
+            data.subscriptionDiscountPercent ?? 0,
+          ),
           stock: String(data.stock ?? 0),
           status: data.status || "VISIBLE",
           categoryIds: Array.isArray(data.categoryIds)
@@ -150,6 +157,16 @@ export default function AdminProductEditClient({
     return () => URL.revokeObjectURL(previewUrl);
   }, [imageFile]);
 
+  useEffect(() => {
+    if (!detailImageFile) {
+      setDetailImagePreviewUrl("");
+      return;
+    }
+    const previewUrl = URL.createObjectURL(detailImageFile);
+    setDetailImagePreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [detailImageFile]);
+
   const selectedCategoryIds = useMemo(
     () => parseCategoryIds(form.categoryIds),
     [form.categoryIds],
@@ -172,6 +189,34 @@ export default function AdminProductEditClient({
       ? selectedCategoryIds.filter((id) => id !== categoryId)
       : [...selectedCategoryIds, categoryId];
     setForm((current) => ({ ...current, categoryIds: next.join(",") }));
+  };
+
+  const handleDetailImageChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0] ?? null;
+    event.target.value = "";
+    if (!file) return;
+
+    setImageProcessing(true);
+    try {
+      const prepared = await prepareProductImage(file);
+      setDetailImageFile(prepared);
+      setDetailImageNotice(
+        prepared.size < file.size
+          ? `${readableFileSize(file.size)} 이미지를 ${readableFileSize(prepared.size)}로 줄였습니다.`
+          : `${prepared.name} · ${readableFileSize(prepared.size)}`,
+      );
+    } catch (error) {
+      setDetailImageFile(null);
+      setDetailImageNotice("");
+      toast(
+        error instanceof Error ? error.message : "이미지를 처리하지 못했습니다.",
+        "error",
+      );
+    } finally {
+      setImageProcessing(false);
+    }
   };
 
   const handleImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -214,6 +259,9 @@ export default function AdminProductEditClient({
     const name = form.name.trim();
     const basePrice = Number(form.basePrice);
     const discountPercent = Number(form.discountPercent || 0);
+    const subscriptionDiscountPercent = Number(
+      form.subscriptionDiscountPercent || 0,
+    );
     const stock = Number(form.stock);
     const categoryIds = parseCategoryIds(form.categoryIds);
 
@@ -233,6 +281,14 @@ export default function AdminProductEditClient({
       toast("할인율은 0부터 100 사이로 입력해주세요.", "error");
       return;
     }
+    if (
+      !Number.isInteger(subscriptionDiscountPercent) ||
+      subscriptionDiscountPercent < 0 ||
+      subscriptionDiscountPercent > 100
+    ) {
+      toast("구독 할인율은 0부터 100 사이로 입력해주세요.", "error");
+      return;
+    }
     if (!Number.isInteger(stock) || stock < 0) {
       toast("재고는 0개 이상으로 입력해주세요.", "error");
       return;
@@ -243,6 +299,7 @@ export default function AdminProductEditClient({
       basePrice,
       salePrice: 0,
       discountPercent,
+      subscriptionDiscountPercent,
       stock,
       status: form.status,
       description: form.description.trim(),
@@ -256,6 +313,7 @@ export default function AdminProductEditClient({
       new Blob([JSON.stringify(requestData)], { type: "application/json" }),
     );
     if (imageFile) formData.append("image", imageFile);
+    if (detailImageFile) formData.append("detailImage", detailImageFile);
 
     setSaving(true);
     try {
@@ -381,6 +439,22 @@ export default function AdminProductEditClient({
               />
             </Field>
 
+            <Field label="구독 할인율">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="1"
+                value={form.subscriptionDiscountPercent}
+                onChange={updateField("subscriptionDiscountPercent")}
+                placeholder="10"
+                className="w-full rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm text-gray-900 outline-none focus:border-primary-400"
+              />
+              <span className="mt-1 block text-xs text-gray-400">
+                0이면 상품 화면에 구독 할인 문구를 표시하지 않습니다.
+              </span>
+            </Field>
+
             <Field label="재고" required>
               <input
                 type="number"
@@ -462,6 +536,40 @@ export default function AdminProductEditClient({
                 className="w-full resize-y rounded-lg border border-gray-200 px-3.5 py-2.5 text-sm leading-6 text-gray-900 outline-none focus:border-primary-400"
               />
             </Field>
+            <div className="mt-4 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+              <p className="text-sm font-semibold text-gray-700">상세 설명 이미지</p>
+              <p className="mt-1 text-xs text-gray-400">
+                상품 설명 아래에 표시할 이미지를 등록하세요.
+              </p>
+              <label
+                htmlFor="product-detail-image-edit-upload"
+                className="mt-3 inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-gray-200 bg-white px-3.5 text-xs font-semibold text-gray-600 hover:border-primary-300 hover:text-primary-600"
+              >
+                <i className="ri-image-add-line text-base" />
+                이미지 선택
+                <input
+                  id="product-detail-image-edit-upload"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  disabled={imageProcessing}
+                  onChange={(event) => void handleDetailImageChange(event)}
+                />
+              </label>
+              {(detailImagePreviewUrl || product.detailImageUrl) && (
+                <div className="mt-3 overflow-hidden rounded-lg border border-gray-200 bg-white">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={detailImagePreviewUrl || product.detailImageUrl || ""}
+                    alt="상세 설명 미리보기"
+                    className="max-h-64 w-full object-contain"
+                  />
+                </div>
+              )}
+              {detailImageNotice && (
+                <p className="mt-2 text-xs font-medium text-gray-500">{detailImageNotice}</p>
+              )}
+            </div>
           </div>
 
           <div className="mt-6 flex flex-wrap gap-2">

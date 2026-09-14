@@ -434,18 +434,25 @@ export default function SubscribeClient() {
                   <div>
                     <p className="text-xs text-white/45">구독 신청</p>
                     <h3 className="mt-1 text-lg font-bold">
-                      주 {selected.meals}끼로 시작하기
+                      첫 주 메뉴 저장하고 시작하기
                     </h3>
                   </div>
                   <i className="ri-calendar-check-line text-2xl text-primary-300" />
                 </div>
                 <p className="mb-4 text-xs leading-relaxed text-white/60">
-                  선택한 메뉴로 첫 주 구독이 생성됩니다. 이후 내 구독 화면에서
-                  다음 결제일 23시 전까지 메뉴를 다시 바꿀 수 있습니다.
+                  선택한 메뉴가 첫 번째 배송 주기에 저장되고 첫 결제가
+                  진행됩니다. 이후 내 구독 화면에서 다음 결제일 23시 전까지
+                  다음 회차 메뉴를 바꿀 수 있습니다. 메뉴를 바꾸지 않으면 같은
+                  메뉴가 매주 자동 배송됩니다.
                 </p>
                 <button
                   type="submit"
-                  disabled={submitting || authLoading || subscriptionLoading}
+                  disabled={
+                    submitting ||
+                    authLoading ||
+                    subscriptionLoading ||
+                    !menuComplete
+                  }
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
                 >
                   <i
@@ -460,7 +467,9 @@ export default function SubscribeClient() {
                       : subscription && isCurrentSubscription(subscription)
                         ? "내 구독 보기"
                         : isAuthenticated
-                          ? "구독 신청하기"
+                          ? menuComplete
+                            ? "첫 주 메뉴 저장하고 결제하기"
+                            : "첫 주 메뉴를 모두 선택해주세요"
                           : "로그인하고 신청하기"}
                 </button>
               </form>

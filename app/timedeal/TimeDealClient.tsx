@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useAuth } from "../../components/AuthContext";
@@ -16,6 +16,13 @@ import {
 } from "../../lib/products";
 import type { Product } from "../../types/api";
 import { apiFetch } from "@/lib/api";
+import {
+  getTimeDealState,
+  isAvailableTimeDeal,
+  readServerTimeMs,
+  readTimeDealProducts,
+  type TimeDealPayload,
+} from "../../lib/timedeal";
 
 type SortKey = "popular" | "discount" | "price";
 
@@ -25,11 +32,12 @@ const SORTS: Array<{ key: SortKey; label: string }> = [
   { key: "price", label: "낮은 가격순" },
 ];
 
-const OPEN_HOUR = 22;
-const CLOSE_HOUR = 23;
 const MYSTERY_CARD_COUNT = 8;
 
 export default function TimeDealClient() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuth();
+  const { toast, confirm } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [sort, setSort] = useState<SortKey>("popular");
@@ -39,33 +47,98 @@ export default function TimeDealClient() {
     seconds: "00",
     active: false,
   });
+  const [serverOffsetMs, setServerOffsetMs] = useState(0);
+  const [midnightAlertEnabled, setMidnightAlertEnabled] = useState(false);
+  const phaseRef = useRef<string | null>(null);
+  const loadingRef = useRef(false);
 
   useEffect(() => {
-    apiFetch("/api/timedeal", { credentials: "include" })
-      .then((res) => {
-        if (!res.ok) throw new Error("TIME_DEAL_FAILED");
-        return res.json();
+    if (!isAuthenticated) {
+      setMidnightAlertEnabled(false);
+      return;
+    }
+
+    apiFetch("/api/notifications/midnight/status", {
+      credentials: "include",
+      cache: "no-store",
+    })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { enabled?: boolean } | null) => {
+        if (data) setMidnightAlertEnabled(data.enabled === true);
       })
-      .then((data: Product[]) => setProducts(data))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
+      .catch(() => setMidnightAlertEnabled(false));
+  }, [isAuthenticated]);
+
+  const toggleMidnightAlert = async () => {
+    if (!isAuthenticated) {
+      const ok = await confirm("로그인이 필요합니다.", {
+        kind: "login",
+        description: "로그인 후 미드나이트 알림을 신청할 수 있습니다.",
+      });
+      if (ok) router.push("/login?redirect=/timedeal");
+      return;
+    }
+
+    const nextEnabled = !midnightAlertEnabled;
+    const response = await apiFetch("/api/notifications/midnight", {
+      method: nextEnabled ? "POST" : "DELETE",
+      credentials: "include",
+    });
+    if (response.status === 401) {
+      router.push("/login?redirect=/timedeal");
+      return;
+    }
+    if (!response.ok) {
+      toast("알림 설정을 변경하지 못했습니다. 잠시 후 다시 시도해주세요.", "error");
+      return;
+    }
+    setMidnightAlertEnabled(nextEnabled);
+    toast(
+      nextEnabled
+        ? "미드나이트 알림을 신청했습니다."
+        : "미드나이트 알림을 해제했습니다.",
+    );
+  };
+
+  const loadProducts = useCallback(async (initial = false) => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
+    if (initial) setLoading(true);
+    try {
+      const response = await apiFetch("/api/timedeal", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("TIME_DEAL_FAILED");
+      const payload = (await response.json()) as TimeDealPayload;
+      const serverTimeMs = readServerTimeMs(response, payload);
+      if (serverTimeMs !== undefined) {
+        setServerOffsetMs(serverTimeMs - Date.now());
+      }
+      setProducts(readTimeDealProducts(payload));
+    } catch {
+      if (initial) setProducts([]);
+    } finally {
+      loadingRef.current = false;
+      if (initial) setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      const open = new Date(now);
-      open.setHours(OPEN_HOUR, 0, 0, 0);
-      const close = new Date(now);
-      close.setHours(CLOSE_HOUR, 0, 0, 0);
+    void loadProducts(true);
+  }, [loadProducts]);
 
-      const active = now >= open && now < close;
-      const target = active ? close : open;
-      if (now >= close) target.setDate(target.getDate() + 1);
+  useEffect(() => {
+    const tick = () => {
+      const nowMs = Date.now() + serverOffsetMs;
+      const state = getTimeDealState(nowMs);
+      const previousPhase = phaseRef.current;
+      phaseRef.current = state.phase;
+      if (previousPhase && previousPhase !== state.phase) void loadProducts();
 
       const diff = Math.max(
         0,
-        Math.floor((target.getTime() - now.getTime()) / 1000),
+        Math.floor((state.targetMs - nowMs) / 1000),
       );
       const hours = Math.floor(diff / 3600);
       const minutes = Math.floor((diff % 3600) / 60);
@@ -74,14 +147,21 @@ export default function TimeDealClient() {
         hours: String(hours).padStart(2, "0"),
         minutes: String(minutes).padStart(2, "0"),
         seconds: String(seconds).padStart(2, "0"),
-        active,
+        active: state.active,
       });
     };
 
     tick();
     const id = window.setInterval(tick, 1000);
-    return () => window.clearInterval(id);
-  }, []);
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") void loadProducts();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [loadProducts, serverOffsetMs]);
 
   const sortedProducts = useMemo(() => {
     const copy = [...products];
@@ -108,12 +188,12 @@ export default function TimeDealClient() {
         <section className="relative flex min-h-[360px] flex-col items-center justify-center overflow-hidden px-4 text-center">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(239,68,68,0.25),transparent_42%),linear-gradient(180deg,#111827,#030712)]" />
           <div className="relative z-10">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-white/70">
-              <i className="ri-moon-fill text-deal-400" />
-              매일 22:00-23:00
+            <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-deal-400/25 bg-deal-500/10 px-4 py-2 text-[11px] font-bold tracking-[0.18em] text-deal-200 shadow-[0_0_24px_rgba(217,93,34,0.12)]">
+              <i className="ri-moon-fill text-sm text-deal-400" />
+              <span>22:00–23:00</span>
             </div>
-            <h1 className="mb-3 text-4xl font-semibold md:text-6xl">
-              Midnight Sale
+            <h1 className="mb-3 text-4xl font-black tracking-[-0.06em] text-white drop-shadow-[0_4px_22px_rgba(255,255,255,0.12)] md:text-6xl">
+              Midnight <span className="text-deal-100">Sale</span>
             </h1>
             <p className="mb-8 text-sm text-white/55 md:text-base">
               {timer.active
@@ -127,6 +207,24 @@ export default function TimeDealClient() {
               <span className="text-2xl font-light text-white/20">:</span>
               <TimerBox value={timer.seconds} label="초" accent />
             </div>
+            <button
+              type="button"
+              onClick={() => void toggleMidnightAlert()}
+              className={`mt-8 inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-bold transition-colors ${
+                midnightAlertEnabled
+                  ? "border-deal-400 bg-deal-500 text-white"
+                  : "border-white/15 bg-white/10 text-white/75 hover:bg-white/15"
+              }`}
+            >
+              <i
+                className={
+                  midnightAlertEnabled
+                    ? "ri-notification-fill"
+                    : "ri-notification-line"
+                }
+              />
+              {midnightAlertEnabled ? "알림 신청 중" : "미드나이트 알림 받기"}
+            </button>
           </div>
         </section>
 
@@ -168,7 +266,7 @@ export default function TimeDealClient() {
               </div>
             ) : (
               <div className="inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-xs font-bold text-white/45">
-                <i className="ri-lock-2-line text-deal-400" />밤 10시 공개 대기
+                <i className="ri-lock-2-line text-deal-400" />22시 공개 대기
               </div>
             )}
           </div>
@@ -296,6 +394,23 @@ function TimeDealCard({ product }: { product: Product }) {
         return;
       }
 
+      const latestResponse = await apiFetch("/api/timedeal", {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!latestResponse.ok) {
+        toast("미드나이트 상품 상태를 확인하지 못했습니다.", "error");
+        return;
+      }
+      const latestPayload = (await latestResponse.json()) as TimeDealPayload;
+      const latestProduct = readTimeDealProducts(latestPayload).find(
+        (item) => item.productId === product.productId,
+      );
+      if (!isAvailableTimeDeal(latestProduct)) {
+        toast("세일이 종료되었거나 품절된 상품입니다.", "error");
+        return;
+      }
+
       const res = await apiFetch(
         `/api/carts/items?productId=${product.productId}&quantity=1`,
         { method: "POST", credentials: "include" },
@@ -305,7 +420,11 @@ function TimeDealCard({ product }: { product: Product }) {
         return;
       }
       if (!res.ok) {
-        toast("장바구니 담기에 실패했습니다.", "error");
+        if (res.status === 409 || res.status === 410 || res.status === 422) {
+          toast("상품 가격이나 재고가 변경되었습니다. 다시 확인해주세요.", "error");
+        } else {
+          toast("장바구니 담기에 실패했습니다.", "error");
+        }
         return;
       }
       await refresh();
@@ -348,7 +467,7 @@ function TimeDealCard({ product }: { product: Product }) {
         {soldOut && (
           <div className="absolute inset-0 flex items-center justify-center bg-foreground-950/70">
             <span className="rounded-md bg-foreground-800 px-5 py-2.5 font-bold">
-              품절
+              SOLD OUT
             </span>
           </div>
         )}
@@ -368,7 +487,7 @@ function TimeDealCard({ product }: { product: Product }) {
         <div className="mt-3">
           <div className="mb-1.5 flex justify-between text-xs">
             <span className="text-white/70">
-              {soldOut ? "판매 완료" : `재고 ${remaining}개 남음`}
+              {soldOut ? "SOLD OUT" : `재고 ${remaining}개 남음`}
             </span>
             <span className="text-white/40">
               {sold}/{totalStock}
@@ -390,7 +509,7 @@ function TimeDealCard({ product }: { product: Product }) {
           {!soldOut && !adding && (
             <i className="ri-shopping-bag-3-line text-base" />
           )}
-          {soldOut ? "품절" : adding ? "담는 중..." : "장바구니에 담기"}
+          {soldOut ? "SOLD OUT" : adding ? "담는 중..." : "장바구니에 담기"}
         </button>
       </div>
     </article>
