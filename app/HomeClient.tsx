@@ -12,6 +12,7 @@ import {
   CATEGORIES,
   fetchCatalog,
   fetchCategoryCounts,
+  inCategory,
   PRODUCT_PLACEHOLDER,
 } from "../lib/products";
 import type { Product } from "../types/api";
@@ -236,9 +237,12 @@ export default function HomeClient() {
                 ? Array.from({ length: categoryCards.length }, (_, index) => (
                     <CategorySkeleton key={index} />
                   ))
-                : categoryCards.map((category, index) => {
+                : categoryCards.map((category) => {
+                    const categoryProduct = products.find((product) =>
+                      inCategory(product, category.key),
+                    );
                     const cover =
-                      products[index]?.imageUrl || PRODUCT_PLACEHOLDER;
+                      categoryProduct?.imageUrl || PRODUCT_PLACEHOLDER;
                     return (
                       <Link
                         key={category.key}

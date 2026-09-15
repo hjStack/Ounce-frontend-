@@ -16,7 +16,11 @@ import {
   prepareProductImage,
   readableFileSize,
 } from "../../../../../lib/product-images";
-import { PRODUCT_PLACEHOLDER, won } from "../../../../../lib/products";
+import {
+  normalizeProductImage,
+  PRODUCT_PLACEHOLDER,
+  won,
+} from "../../../../../lib/products";
 import type { Product } from "../../../../../types/api";
 import { apiFetch } from "@/lib/api";
 
@@ -98,7 +102,7 @@ export default function AdminProductEditClient({
         const data = (await response.json()) as ProductWithCategoryIds;
         if (ignore) return;
 
-        setProduct(data);
+        setProduct(normalizeProductImage(data));
         setForm({
           name: data.name || "",
           basePrice: String(data.basePrice || ""),

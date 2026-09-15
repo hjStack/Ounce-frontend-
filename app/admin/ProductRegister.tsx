@@ -17,8 +17,8 @@ import {
   readableFileSize,
 } from "../../lib/product-images";
 import {
+  normalizeProductImage,
   PRODUCT_PLACEHOLDER,
-  resolveProductImageUrl,
   won,
 } from "../../lib/products";
 import type { Product, ProductSliceResponse } from "../../types/api";
@@ -81,11 +81,11 @@ export default function ProductRegister() {
       console.log("관리자 상품 응답:", data);
       console.log("첫 상품 imageUrl:", data.products?.[0]?.imageUrl);
       setProducts(
-        (data.products ?? data.content ?? data.items ?? []).map((product) => ({
-          ...product,
-          imageUrl: resolveProductImageUrl(product.imageUrl),
-        })),
+        (data.products ?? data.content ?? data.items ?? []).map(
+          normalizeProductImage,
+        ),
       );
+
     } catch {
       setProducts([]);
     } finally {
@@ -287,12 +287,14 @@ export default function ProductRegister() {
       "request",
       new Blob([JSON.stringify(requestData)], { type: "application/json" }),
     );
+
+
     if (imageFile) formData.append("image", imageFile);
     if (detailImageFile) formData.append("detailImage", detailImageFile);
 
     setSubmitting(true);
     try {
-      const response = await apiFetch("/api/products", {
+      const response = await apiFetch("/api/admin/products", {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -685,7 +687,9 @@ export default function ProductRegister() {
                       <div className="flex items-center gap-3">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
-                          src={resolveProductImageUrl(product.imageUrl) || PRODUCT_PLACEHOLDER}
+                          src={
+                            product.imageUrl || PRODUCT_PLACEHOLDER
+                          }
                           alt=""
                           className="h-12 w-12 rounded-lg bg-gray-100 object-cover"
                           onLoad={(event) =>

@@ -18,6 +18,7 @@ import { prepareProductImage, readableFileSize } from "../../../lib/product-imag
 import {
   getProductPrice,
   isDiscounted,
+  normalizeProductImage,
   PRODUCT_PLACEHOLDER,
   won,
 } from "../../../lib/products";
@@ -85,7 +86,7 @@ export default function ProductDetailClient({
       })
       .then((data: Product) => {
         if (ignore) return;
-        setProduct(data);
+        setProduct(normalizeProductImage(data));
         setQuantity(1);
         void loadReviews();
       })

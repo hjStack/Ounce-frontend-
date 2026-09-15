@@ -16,18 +16,48 @@ const PRODUCT_CDN_URL = "https://cdn.ouncefresh.com";
 
 /** Replace the retired CDN hostname still present in some product records. */
 export function resolveProductImageUrl(imageUrl?: string | null) {
-  if (!imageUrl) return "";
+  const value = imageUrl?.trim();
+  if (!value) return "";
+
+  // Some API responses contain the S3 object key instead of an absolute URL.
+  // Product images are served through the public CloudFront distribution.
+  if (value.startsWith("img/") || value.startsWith("/img/")) {
+    return `${PRODUCT_CDN_URL}/${value.replace(/^\/+/, "")}`;
+  }
 
   try {
-    const url = new URL(imageUrl);
-    if (url.hostname.toLowerCase() === LEGACY_CDN_HOST) {
+    const url = new URL(value);
+    if (
+      url.hostname.toLowerCase() === LEGACY_CDN_HOST ||
+      url.pathname.startsWith("/img/") &&
+        ["localhost", "127.0.0.1", "::1"].includes(url.hostname)
+    ) {
       return `${PRODUCT_CDN_URL}${url.pathname}${url.search}`;
     }
   } catch {
-    // Keep non-URL values unchanged so the image error handler can report them.
+    // Keep other non-URL values unchanged so the image error handler can report them.
   }
 
-  return imageUrl;
+  return value;
+}
+
+export function normalizeProductImage<T extends { imageUrl?: string | null }>(
+  product: T,
+): T {
+  const value = product as T & {
+    thumbnailUrl?: string | null;
+    image?: string | { url?: string | null } | null;
+    thumbnail?: string | { url?: string | null } | null;
+  };
+  const imageValue =
+    value.imageUrl ||
+    value.thumbnailUrl ||
+    (typeof value.image === "string" ? value.image : value.image?.url) ||
+    (typeof value.thumbnail === "string"
+      ? value.thumbnail
+      : value.thumbnail?.url);
+
+  return { ...product, imageUrl: resolveProductImageUrl(imageValue) };
 }
 
 export const CATEGORIES: Category[] = [
@@ -170,15 +200,15 @@ export async function fetchProducts(params: {
     ...data,
     products: data.products?.map((product) => ({
       ...product,
-      imageUrl: resolveProductImageUrl(product.imageUrl),
+      ...normalizeProductImage(product),
     })),
     content: data.content?.map((product) => ({
       ...product,
-      imageUrl: resolveProductImageUrl(product.imageUrl),
+      ...normalizeProductImage(product),
     })),
     items: data.items?.map((product) => ({
       ...product,
-      imageUrl: resolveProductImageUrl(product.imageUrl),
+      ...normalizeProductImage(product),
     })),
   };
 }
