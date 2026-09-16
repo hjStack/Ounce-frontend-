@@ -15,11 +15,12 @@ export function LaunchCouponStrip() {
                         구독 배송비 0원
                     </span>
                     <div className="min-w-0">
-                        <p className="break-keep text-xs font-extrabold text-foreground-900">
+                        {/* <p className="break-keep text-xs font-extrabold text-foreground-900">
                             구독하면 끼 수와 관계없이 매주 무료배송
-                        </p>
+                        </p> */}
                         <p className="mt-0.5 break-keep text-[11px] font-semibold text-foreground-500">
-                        [새벽배송 안내] 현재 서울 지역 한정 서비스 중이며, 추후 수도권 및 타 지역으로 점차 확대될 예정입니다.
+                        {/* [새벽배송 안내] 현재 서울 지역 한정 서비스 중이며, 추후 수도권 및 타 지역으로 점차 확대될 예정입니다. */}
+                        오픈 준비중입니다 
                         </p>
                     </div>
                 </div>
