@@ -25,6 +25,18 @@ export default function HomeClient() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showTemporaryNotice, setShowTemporaryNotice] = useState(false);
+
+  useEffect(() => {
+    if (window.localStorage.getItem("ounce-temporary-data-notice-v2") !== "hidden") {
+      setShowTemporaryNotice(true);
+    }
+  }, []);
+
+  const closeTemporaryNotice = () => {
+    window.localStorage.setItem("ounce-temporary-data-notice-v2", "hidden");
+    setShowTemporaryNotice(false);
+  };
 
   useEffect(() => {
     const tick = () => {
@@ -71,6 +83,52 @@ export default function HomeClient() {
 
   return (
     <div className="bg-background-cream">
+      {showTemporaryNotice && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-5 backdrop-blur-[2px]"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="temporary-data-notice-title"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl sm:p-7">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary-50 text-primary-600">
+                <i className="ri-information-line text-xl" />
+              </div>
+              <button
+                type="button"
+                onClick={closeTemporaryNotice}
+                aria-label="안내 닫기"
+                className="text-xl leading-none text-foreground-300 transition-colors hover:text-foreground-700"
+              >
+                ×
+              </button>
+            </div>
+            <p className="mb-2 text-xs font-bold tracking-[0.16em] text-primary-600">
+              SERVICE NOTICE
+            </p>
+            <h2
+              id="temporary-data-notice-title"
+              className="mb-3 text-xl font-bold text-foreground-950"
+            >
+              현재 테스트 운영중입니다.
+            </h2>
+            <p className="text-sm leading-6 text-foreground-500">
+              홈페이지에 표시된 상품과 가격뿐 아니라 구독 배송비 0원, 메뉴 수,
+              조리 시간, 새벽배송, 미드나이트 세일, 1인분 소분 등의 내용은
+              서비스 준비를 위한 임시 정보입니다. 정식 오픈 전 실제 운영
+              정책에 따라 변경될 수 있습니다.
+            </p>
+            <button
+              type="button"
+              onClick={closeTemporaryNotice}
+              className="mt-6 w-full rounded-xl bg-primary-600 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-700"
+            >
+              확인했습니다
+            </button>
+          </div>
+        </div>
+      )}
       <main className="pt-20 md:pt-24">
         <LaunchCouponStrip />
 

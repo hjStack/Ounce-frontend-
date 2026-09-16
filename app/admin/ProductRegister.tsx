@@ -17,6 +17,8 @@ import {
   readableFileSize,
 } from "../../lib/product-images";
 import {
+  CATEGORIES,
+  categoryOf,
   normalizeProductImage,
   PRODUCT_PLACEHOLDER,
   subscriptionDiscountPercentOf,
@@ -673,6 +675,7 @@ export default function ProductRegister() {
               <thead className="bg-gray-50 text-xs font-semibold text-gray-500">
                 <tr>
                   <th className="px-5 py-3">상품</th>
+                  <th className="px-5 py-3">카테고리</th>
                   <th className="px-5 py-3">가격</th>
                   <th className="px-5 py-3">할인율</th>
                   <th className="px-5 py-3">구독 할인</th>
@@ -710,6 +713,21 @@ export default function ProductRegister() {
                           </p>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      {(() => {
+                        const key = categoryOf(product);
+                        const label = CATEGORIES.find(
+                          (category) => category.key === key,
+                        )?.label;
+                        return label ? (
+                          <span className="rounded-full bg-primary-50 px-2.5 py-1 text-xs font-semibold text-primary-700">
+                            {label}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">미분류</span>
+                        );
+                      })()}
                     </td>
                     <td className="px-5 py-3 font-semibold text-gray-900">
                       {won(product.basePrice)}
