@@ -19,6 +19,7 @@ import {
 import {
   normalizeProductImage,
   PRODUCT_PLACEHOLDER,
+  subscriptionDiscountPercentOf,
   won,
 } from "../../lib/products";
 import type { Product, ProductSliceResponse } from "../../types/api";
@@ -717,8 +718,8 @@ export default function ProductRegister() {
                       {Number(product.discountPercent || 0)}%
                     </td>
                     <td className="px-5 py-3 font-semibold text-primary-600">
-                      {Number(product.subscriptionDiscountPercent || 0) > 0
-                        ? `구독 ${Number(product.subscriptionDiscountPercent)}%`
+                      {(subscriptionDiscountPercentOf(product) ?? 0) > 0
+                        ? `구독 ${subscriptionDiscountPercentOf(product)}%`
                         : "-"}
                     </td>
                     <td className="px-5 py-3 tabular-nums">

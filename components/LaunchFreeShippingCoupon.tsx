@@ -19,7 +19,7 @@ export function LaunchCouponStrip() {
                             구독하면 끼 수와 관계없이 매주 무료배송
                         </p>
                         <p className="mt-0.5 break-keep text-[11px] font-semibold text-foreground-500">
-                            일요일 23시 전까지 메뉴 변경 · 목요일 아침 서울 새벽배송
+                        [새벽배송 안내] 현재 서울 지역 한정 서비스 중이며, 추후 수도권 및 타 지역으로 점차 확대될 예정입니다.
                         </p>
                     </div>
                 </div>

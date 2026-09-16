@@ -14,11 +14,18 @@ import {
 import { apiFetch } from "@/lib/api";
 
 const LOGIN_FAILED_MESSAGE = "이메일 또는 비밀번호가 올바르지 않습니다.";
-const WITHDRAWN_MESSAGE =
-  "이미 탈퇴한 계정이에요. 새로 가입하시려면 회원가입을 이용해주세요.";
+const WITHDRAWN_MESSAGE = "아이디를 찾을 수 없습니다.";
 
 function normalizeLoginError(rawMessage: string) {
-  if (rawMessage.includes("탈퇴")) return WITHDRAWN_MESSAGE;
+  const message = rawMessage.toLowerCase();
+  if (
+    rawMessage.includes("탈퇴") ||
+    rawMessage.includes("삭제") ||
+    message.includes("withdraw") ||
+    message.includes("deleted")
+  ) {
+    return WITHDRAWN_MESSAGE;
+  }
   return LOGIN_FAILED_MESSAGE;
 }
 

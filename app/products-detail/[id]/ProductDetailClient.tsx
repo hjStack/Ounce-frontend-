@@ -35,7 +35,7 @@ export default function ProductDetailClient({
 }) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { refresh } = useCart();
+  const { items: cartItems, refresh } = useCart();
   const { toast, confirm } = useToast();
 
   const [product, setProduct] = useState<Product | null>(null);
@@ -107,9 +107,17 @@ export default function ProductDetailClient({
     };
   }, [productId, loadReviews]);
 
+  const cartQuantity = product
+    ? (cartItems.find((item) => item.productId === product.productId)
+        ?.quantity ?? 0)
+    : 0;
   const isSoldOut =
-    !product || product.status === "SOLD_OUT" || product.stock <= 0;
-  const maxQuantity = product ? Math.min(10, Math.max(1, product.stock)) : 10;
+    !product ||
+    product.status === "SOLD_OUT" ||
+    product.stock <= 0;
+  const maxQuantity = product
+    ? Math.min(10, Math.max(1, product.stock))
+    : 10;
   const price = product ? getProductPrice(product) : 0;
   const total = price * quantity;
 
@@ -140,6 +148,10 @@ export default function ProductDetailClient({
       toast("품절된 상품입니다.", "error");
       return false;
     }
+    if (quantity + cartQuantity > (product?.stock ?? 0)) {
+      toast("장바구니에 담긴 수량을 포함해 재고를 초과할 수 없습니다.", "error");
+      return false;
+    }
     setAdding(true);
 
     if (!isAuthenticated) {
@@ -164,7 +176,7 @@ export default function ProductDetailClient({
         return false;
       }
       if (!res.ok) {
-        toast("상품 1개당 최대 10개까지 담을 수 있습니다.", "error");
+        toast("재고 또는 장바구니 최대 수량을 확인해주세요.", "error");
         return false;
       }
       await refresh();
@@ -430,12 +442,12 @@ export default function ProductDetailClient({
 
             {isSoldOut ? (
               <p className="mt-3 text-sm font-semibold text-deal-600">
-                일시 품절된 상품입니다.
+                재고가 없습니다.
               </p>
             ) : product.stock <= 10 ? (
               <p className="mt-3 text-sm font-semibold text-deal-600">
                 <i className="ri-fire-line mr-1" />
-                품절임박 · {product.stock}개 남음
+                품절임박
               </p>
             ) : null}
 
@@ -504,7 +516,7 @@ export default function ProductDetailClient({
                   className="h-14 w-full rounded-xl bg-background-200 font-bold text-foreground-500"
                   disabled
                 >
-                  품절
+                  재고 없음
                 </button>
               ) : (
                 <>

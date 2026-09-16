@@ -16,6 +16,7 @@ import {
 } from "../../lib/products";
 import type { Product } from "../../types/api";
 import { apiFetch } from "@/lib/api";
+import { removeMidnightPush, subscribeToMidnightPush } from "@/lib/web-push";
 import {
   getTimeDealState,
   isAvailableTimeDeal,
@@ -80,6 +81,17 @@ export default function TimeDealClient() {
     }
 
     const nextEnabled = !midnightAlertEnabled;
+    try {
+      if (nextEnabled) await subscribeToMidnightPush();
+      else await removeMidnightPush();
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message === "PUSH_PERMISSION_DENIED"
+          ? "브라우저 알림 권한을 허용해야 신청할 수 있습니다."
+          : "이 브라우저에서는 웹 푸시를 사용할 수 없습니다. 설정을 확인해주세요.";
+      toast(message, "error");
+      return;
+    }
     const response = await apiFetch("/api/notifications/midnight", {
       method: nextEnabled ? "POST" : "DELETE",
       credentials: "include",

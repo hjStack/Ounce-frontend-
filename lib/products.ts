@@ -45,9 +45,14 @@ export function normalizeProductImage<T extends { imageUrl?: string | null }>(
   product: T,
 ): T {
   const value = product as T & {
+    subscriptionDiscountPercent?: number | string | null;
     thumbnailUrl?: string | null;
     image?: string | { url?: string | null } | null;
     thumbnail?: string | { url?: string | null } | null;
+    subscriptionDiscountRate?: number | string | null;
+    subscribeDiscountPercent?: number | string | null;
+    subscriptionDiscount?: number | string | null;
+    subscription_discount_percent?: number | string | null;
   };
   const imageValue =
     value.imageUrl ||
@@ -57,7 +62,39 @@ export function normalizeProductImage<T extends { imageUrl?: string | null }>(
       ? value.thumbnail
       : value.thumbnail?.url);
 
-  return { ...product, imageUrl: resolveProductImageUrl(imageValue) };
+  const discountValue = subscriptionDiscountPercentOf(value);
+
+  return {
+    ...product,
+    imageUrl: resolveProductImageUrl(imageValue),
+    ...(discountValue !== null
+      ? { subscriptionDiscountPercent: Number(discountValue) }
+      : {}),
+  };
+}
+
+export function subscriptionDiscountPercentOf(product: {
+  subscriptionDiscountPercent?: number | string | null;
+  subscriptionDiscountRate?: number | string | null;
+  subscribeDiscountPercent?: number | string | null;
+  subscriptionDiscount?: number | string | null;
+  subscription_discount_percent?: number | string | null;
+}) {
+  const values = [
+    product.subscriptionDiscountPercent,
+    product.subscriptionDiscountRate,
+    product.subscribeDiscountPercent,
+    product.subscriptionDiscount,
+    product.subscription_discount_percent,
+  ];
+  const positive = values
+    .map((value) => Number(value))
+    .find((value) => Number.isFinite(value) && value > 0);
+
+  if (positive !== undefined) return positive;
+
+  const first = values.find((value) => value != null && value !== "");
+  return first == null ? null : Number(first) || 0;
 }
 
 export const CATEGORIES: Category[] = [

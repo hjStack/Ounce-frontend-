@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { Product } from "../types/api";
 import {
+  getProductPrice,
+  isDiscounted,
   PRODUCT_PLACEHOLDER,
   splitName,
   stockState,
+  subscriptionDiscountPercentOf,
   won,
 } from "../lib/products";
 import { useAuth } from "./AuthContext";
@@ -47,17 +50,27 @@ export function CategorySkeleton() {
 export default function ProductCard({ product }: { product: Product }) {
   const router = useRouter();
   const { isAuthenticated } = useAuth();
-  const { refresh } = useCart();
+  const { items: cartItems, refresh } = useCart();
   const { toast, confirm } = useToast();
   const [adding, setAdding] = useState(false);
 
   const parts = splitName(product.name);
   const state = stockState(product);
   const isTimeDeal = product.status === "TIME_DEAL";
-  const subscriptionDiscountPercent = Number(
-    product.subscriptionDiscountPercent || 0,
+  const subscriptionDiscountPercent =
+    subscriptionDiscountPercentOf(product) ?? 0;
+  const cartItem = cartItems.find(
+    (item) => item.productId === product.productId,
   );
+  const productStock = Number(product.stock);
+  const maxCartQuantity = Number.isFinite(productStock)
+    ? Math.max(1, Math.min(10, productStock))
+    : 10;
   const soldOut = state === "soldout";
+  const price = getProductPrice(product);
+  const subscriptionPrice = Math.round(
+    (price * (100 - subscriptionDiscountPercent)) / 100,
+  );
 
   const addToCart = async () => {
     if (adding) return;
@@ -70,6 +83,16 @@ export default function ProductCard({ product }: { product: Product }) {
           description: "로그인 후 장바구니를 사용할 수 있습니다.",
         });
         if (ok) router.push("/login");
+        return;
+      }
+
+      if (cartItem && cartItem.quantity >= maxCartQuantity) {
+        toast(
+          maxCartQuantity < 10
+            ? `재고가 ${maxCartQuantity}개라 더 담을 수 없습니다.`
+            : "상품 1개당 최대 10개까지 담을 수 있습니다.",
+          "error",
+        );
         return;
       }
 
@@ -159,9 +182,21 @@ export default function ProductCard({ product }: { product: Product }) {
           </span>
         </div>
         <div className="mt-2.5 flex items-end justify-between gap-2">
-          <p className="text-base font-bold text-foreground-950">
-            {won(product.basePrice)}
-          </p>
+          <div>
+            {isDiscounted(product) && (
+              <p className="text-[11px] text-foreground-400 line-through">
+                {won(product.basePrice)}
+              </p>
+            )}
+            <p className="text-base font-bold text-foreground-950">
+              {won(price)}
+            </p>
+            {subscriptionDiscountPercent > 0 && (
+              <p className="mt-0.5 text-xs font-bold text-primary-600">
+                구독가 {won(subscriptionPrice)}
+              </p>
+            )}
+          </div>
           {soldOut ? (
             <span
               className="relative z-20 flex h-9 w-9 items-center justify-center rounded-full bg-background-200 text-foreground-400"

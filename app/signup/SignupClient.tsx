@@ -16,6 +16,23 @@ interface Errors {
   confirmPassword?: string;
 }
 
+const WITHDRAWN_SIGNUP_MESSAGE =
+  "탈퇴한 계정은 탈퇴 후 30일 동안 다시 가입할 수 없습니다.";
+
+function normalizeSignupError(rawMessage: string) {
+  const message = rawMessage.toLowerCase();
+  if (
+    rawMessage.includes("탈퇴") ||
+    rawMessage.includes("삭제") ||
+    rawMessage.includes("재가입") ||
+    message.includes("withdraw") ||
+    message.includes("deleted")
+  ) {
+    return WITHDRAWN_SIGNUP_MESSAGE;
+  }
+  return rawMessage || "회원가입에 실패했습니다.";
+}
+
 export default function SignupClient() {
   const router = useRouter();
   const { toast } = useToast();
@@ -78,10 +95,15 @@ export default function SignupClient() {
         markSignupBenefitToastPending("expected");
         router.push("/login?welcome=true");
       } else if (response.status === 400 || response.status === 409) {
-        const data = (await response.json().catch(() => null)) as {
-          message?: string;
-        } | null;
-        const message = data?.message || "회원가입에 실패했습니다.";
+        const rawResponse = await response.text().catch(() => "");
+        let serverMessage = rawResponse;
+        try {
+          const data = JSON.parse(rawResponse) as { message?: string };
+          serverMessage = data.message || rawResponse;
+        } catch {
+          // Some server errors are returned as plain text.
+        }
+        const message = normalizeSignupError(serverMessage);
         if (message.includes("비밀번호")) setErrors({ password: message });
         else if (message.includes("이메일")) setErrors({ email: message });
         toast(message, "error");

@@ -48,15 +48,22 @@ export default function Navbar() {
 
   const [searchMounted, setSearchMounted] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
+  const [authMounted, setAuthMounted] = useState(false);
   const [keyword, setKeyword] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined,
   );
 
-  const showAuthenticated = isAuthenticated;
-  const showAdmin = isAdmin;
-  const showGuest = !isAuthenticated;
+  // Auth is resolved in the browser. Keep auth-dependent markup stable during
+  // SSR and the first hydration render, then reveal the correct controls.
+  const showAuthenticated = authMounted && isAuthenticated;
+  const showAdmin = authMounted && isAdmin;
+  const showGuest = authMounted && !isAuthenticated;
+
+  useEffect(() => {
+    setAuthMounted(true);
+  }, []);
 
   // 라우트가 바뀌면 열려 있던 메뉴/오버레이를 모두 닫는다
   useEffect(() => {

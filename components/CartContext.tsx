@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useAuth } from "./AuthContext";
 import { apiFetch } from "@/lib/api";
+import { fetchCatalog, normalizeProductImage } from "../lib/products";
 
 import type { CartItem } from "../types/api";
 
@@ -40,7 +41,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const contentType = res.headers.get("content-type") ?? "";
       if (!contentType.includes("application/json")) return;
 
-      setItems((await res.json()) as CartItem[]);
+      const data = (await res.json()) as CartItem[];
+      const catalog = await fetchCatalog(100).catch(() => []);
+      const stockByProductId = new Map(
+        catalog.map((product) => [product.productId, product.stock]),
+      );
+      setItems(
+        data.map((item) => ({
+          ...normalizeProductImage(item),
+          stock: item.stock ?? stockByProductId.get(item.productId),
+        })),
+      );
     } catch (e) {
       console.error("장바구니 개수 조회 실패:", e);
     }

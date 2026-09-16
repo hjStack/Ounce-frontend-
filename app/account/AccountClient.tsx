@@ -421,40 +421,105 @@ export default function AccountClient() {
       </main>
 
       {withdrawOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-gray-900/50 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-7 shadow-2xl">
-            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
-              <i className="ri-error-warning-line text-2xl text-red-500" />
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-foreground-950/55 px-4 py-6 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !deleting) {
+              setWithdrawOpen(false);
+              setWithdrawText("");
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-black/5"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="withdraw-title"
+          >
+            <div className="flex items-start justify-between border-b border-background-200 px-6 py-5 md:px-7">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-500">
+                  <i className="ri-user-unfollow-line text-xl" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold tracking-wide text-red-500">
+                    ACCOUNT
+                  </p>
+                  <h3 id="withdraw-title" className="mt-0.5 text-lg font-bold text-foreground-950">
+                    회원 탈퇴
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  if (deleting) return;
+                  setWithdrawOpen(false);
+                  setWithdrawText("");
+                }}
+                className="flex h-8 w-8 items-center justify-center rounded-full text-foreground-400 transition hover:bg-background-100 hover:text-foreground-700"
+                aria-label="회원 탈퇴 모달 닫기"
+              >
+                <i className="ri-close-line text-xl" />
+              </button>
             </div>
-            <h3 className="mb-2 text-lg font-bold text-gray-900">
-              정말 탈퇴하시겠어요?
-            </h3>
-            <p className="mb-5 text-sm font-medium leading-relaxed text-gray-700">
-              탈퇴 시 주문 내역, 포인트, 쿠폰, 장바구니 등 모든 정보가 삭제되며
-              복구할 수 없습니다.
-            </p>
-            <div className="mb-5">
-              <p className="mb-2 text-sm text-gray-600">
-                계속하시려면{" "}
-                <span className="font-bold text-red-500">{WITHDRAW_TEXT}</span>
-                를 입력해주세요.
+
+            <div className="px-6 py-6 md:px-7">
+              <h4 className="text-base font-bold text-foreground-950">
+                정말 탈퇴하시겠어요?
+              </h4>
+              <p className="mt-2 text-sm leading-6 text-foreground-600">
+                탈퇴하면 아래 정보가 삭제되며, 삭제 후에는 복구할 수 없습니다.
               </p>
-              <input
-                type="text"
-                value={withdrawText}
-                onChange={(event) => setWithdrawText(event.target.value)}
-                placeholder={WITHDRAW_TEXT}
-                className="w-full rounded-lg border border-gray-200 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-red-400 focus:ring-4 focus:ring-red-50"
-              />
+              <div className="mt-4 rounded-xl bg-red-50/70 p-4">
+                <ul className="space-y-2 text-sm text-red-800">
+                  {["주문 내역", "포인트와 쿠폰", "장바구니와 구독 정보"].map(
+                    (item) => (
+                      <li key={item} className="flex items-center gap-2">
+                        <i className="ri-checkbox-blank-circle-fill text-[6px] text-red-400" />
+                        {item}
+                      </li>
+                    ),
+                  )}
+                </ul>
+              </div>
+              <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-5 text-amber-800">
+                <i className="ri-time-line mt-0.5 shrink-0" />
+                <p>
+                  탈퇴 후 <strong>30일 동안 동일 이메일로 재가입할 수 없습니다.</strong>
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <label
+                  htmlFor="withdraw-confirmation"
+                  className="mb-2 block text-sm font-semibold text-foreground-800"
+                >
+                  탈퇴를 진행하려면 아래 문구를 입력해주세요.
+                </label>
+                <p className="mb-2 rounded-lg bg-background-100 px-3 py-2 text-center text-sm font-bold text-foreground-700">
+                  {WITHDRAW_TEXT}
+                </p>
+                <input
+                  id="withdraw-confirmation"
+                  type="text"
+                  value={withdrawText}
+                  onChange={(event) => setWithdrawText(event.target.value)}
+                  placeholder="위 문구를 정확히 입력"
+                  className="w-full rounded-xl border border-background-200 px-4 py-3 text-sm text-foreground-900 outline-none transition placeholder:text-foreground-400 focus:border-red-400 focus:ring-4 focus:ring-red-100"
+                />
+              </div>
             </div>
-            <div className="flex gap-2">
+
+            <div className="flex gap-2 border-t border-background-200 bg-background-50 px-6 py-4 md:px-7">
               <button
                 type="button"
                 onClick={() => {
                   setWithdrawOpen(false);
                   setWithdrawText("");
                 }}
-                className="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                className="flex-1 rounded-xl border border-background-200 bg-white py-3 text-sm font-semibold text-foreground-700 transition hover:bg-background-100"
               >
                 취소
               </button>
@@ -462,7 +527,7 @@ export default function AccountClient() {
                 type="button"
                 onClick={() => void withdraw()}
                 disabled={withdrawText.trim() !== WITHDRAW_TEXT || deleting}
-                className="flex-1 rounded-lg border border-red-200 bg-red-50 py-2.5 text-sm font-bold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:border-red-100 disabled:bg-red-50 disabled:text-red-400"
+                className="flex-1 rounded-xl bg-red-500 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-red-600 disabled:cursor-not-allowed disabled:bg-red-200"
               >
                 {deleting ? "처리 중" : "탈퇴하기"}
               </button>

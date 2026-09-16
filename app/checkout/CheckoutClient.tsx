@@ -16,7 +16,12 @@ import {
   formatCouponDate,
   getCouponId,
 } from "../../lib/coupons";
-import { getProductPrice, PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import {
+  getProductPrice,
+  normalizeProductImage,
+  PRODUCT_PLACEHOLDER,
+  won,
+} from "../../lib/products";
 import {
   getTimeDealState,
   isAvailableTimeDeal,
@@ -55,15 +60,12 @@ declare global {
   }
 }
 
-type DeliveryType = "DAWN" | "NORMAL";
-
 export default function CheckoutClient() {
   const router = useRouter();
   const { refresh } = useCart();
   const { toast } = useToast();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deliveryType, setDeliveryType] = useState<DeliveryType>("DAWN");
   const [submitting, setSubmitting] = useState(false);
   const [receiverName, setReceiverName] = useState("");
   const [receiverPhone, setReceiverPhone] = useState("");
@@ -136,9 +138,10 @@ export default function CheckoutClient() {
       })
       .then((items: CartItem[] | null) => {
         if (!items) return;
+        const normalizedItems = items.map(normalizeProductImage);
         const filtered = selectedIds.length
-          ? items.filter((item) => selectedIds.includes(item.cartId))
-          : items;
+          ? normalizedItems.filter((item) => selectedIds.includes(item.cartId))
+          : normalizedItems;
         if (filtered.length === 0) {
           toast("장바구니가 비어 있습니다.", "error");
           router.push("/cart");
@@ -341,7 +344,8 @@ export default function CheckoutClient() {
         credentials: "include",
         body: JSON.stringify({
           selectedCartProductIds: cart.map((item) => item.cartId),
-          deliveryType,
+          // 배송 방식은 주소 기준으로 자동 결정된다.
+          deliveryType: "DAWN",
           couponId: selectedCouponId,
           receiverName: receiverName.trim(),
           receiverPhone: receiverPhone.trim(),
@@ -443,27 +447,16 @@ export default function CheckoutClient() {
               <section className="rounded-lg border border-gray-200 bg-white shadow-sm">
                 <SectionTitle
                   icon="ri-truck-line"
-                  title="배송 방법"
-                  meta="필수 선택"
+                  title="배송 안내"
+                  meta="주소 기준 자동 적용"
                 />
-                <div className="grid gap-3 px-4 pb-4 md:grid-cols-2 md:px-5 md:pb-5">
-                  <DeliveryOption
-                    value="DAWN"
-                    current={deliveryType}
-                    onChange={setDeliveryType}
-                    icon="ri-moon-line"
-                    title="새벽 배송"
-                    description="밤 11시 마감 · 내일 아침 7시 전 도착"
-                    recommended
-                  />
-                  <DeliveryOption
-                    value="NORMAL"
-                    current={deliveryType}
-                    onChange={setDeliveryType}
-                    icon="ri-truck-line"
-                    title="일반 배송"
-                    description="일반 택배 · 1~2일 소요"
-                  />
+                <div className="flex items-start gap-3 px-4 pb-5 md:px-5 md:pb-6">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#447861]/10">
+                    <i className="ri-truck-line text-lg text-[#447861]" />
+                  </div>
+                  <p className="break-keep pt-1 text-sm leading-6 text-gray-600">
+                    서울 지역은 <strong className="text-gray-900">오후 11시 이전 주문 시 새벽 배송</strong>
+                  </p>
                 </div>
               </section>
 
@@ -730,8 +723,8 @@ export default function CheckoutClient() {
                 <div className="mt-3 flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3">
                   <i className="ri-truck-line mt-0.5 shrink-0 text-gray-500" />
                   <p className="text-xs leading-relaxed text-gray-600">
-                    <strong className="text-gray-900">새벽배송</strong>
-                    <br />밤 11시 전 결제 시 다음 회차로 출고됩니다.
+                    <strong className="text-gray-900">배송 안내</strong>
+                    <br />서울은 오후 11시 이전 주문 시 새벽 배송, 서울이 아닌 지역은 다음날 오후에 배송됩니다.
                   </p>
                 </div>
               </div>
@@ -966,60 +959,6 @@ function SubscriptionShippingOption({
         구독 시작 <i className="ri-arrow-right-line" />
       </Link>
     </div>
-  );
-}
-
-function DeliveryOption({
-  value,
-  current,
-  onChange,
-  icon,
-  title,
-  description,
-  recommended = false,
-}: {
-  value: DeliveryType;
-  current: DeliveryType;
-  onChange: (value: DeliveryType) => void;
-  icon: string;
-  title: string;
-  description: string;
-  recommended?: boolean;
-}) {
-  const selected = current === value;
-  return (
-    <label
-      className={`flex min-h-28 cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors ${
-        selected
-          ? "border-[#447861] bg-[#447861]/10"
-          : "border-gray-200 bg-white hover:border-gray-300"
-      }`}
-    >
-      <input
-        type="radio"
-        name="deliveryType"
-        value={value}
-        checked={selected}
-        onChange={() => onChange(value)}
-        className="mt-1 accent-[#447861]"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <i
-            className={`${icon} ${selected ? "text-[#447861]" : "text-gray-500"}`}
-          />
-          <span className="text-sm font-bold text-gray-900">{title}</span>
-          {recommended && (
-            <span className="rounded-full bg-[#447861] px-2 py-0.5 text-[10px] font-bold text-white">
-              추천
-            </span>
-          )}
-        </div>
-        <p className="mt-1.5 break-keep text-xs leading-relaxed text-gray-500">
-          {description}
-        </p>
-      </div>
-    </label>
   );
 }
 

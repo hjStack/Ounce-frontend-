@@ -117,7 +117,7 @@ export default function HomeClient() {
               icon="ri-truck-line"
               title="구독 무료배송"
               label="배송비 0원 · 서울 새벽배송"
-              description="구독은 끼 수와 관계없이 무료배송. 일요일 23시 전까지 고르면 목요일 아침 도착."
+              description="구독은 끼 수와 관계없이 무료배송"
             />
             <FeatureCard
               icon="ri-knife-line"

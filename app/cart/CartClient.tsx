@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useCart } from "../../components/CartContext";
 import { useToast } from "../../components/ToastContext";
-import { PRODUCT_PLACEHOLDER, won } from "../../lib/products";
+import {
+  fetchCatalog,
+  normalizeProductImage,
+  PRODUCT_PLACEHOLDER,
+  won,
+} from "../../lib/products";
 import { FREE_SHIPPING_THRESHOLD, SHIPPING_FEE } from "../../lib/shipping";
 import {
   hasSubscriptionFreeShippingBenefit,
@@ -47,7 +52,17 @@ export default function CartClient() {
       }
       if (!response.ok) throw new Error("서버 데이터 로드 실패");
       const data = (await response.json()) as CartItem[];
-      setItems(data.map((item) => ({ ...item, selected: true })));
+      const catalog = await fetchCatalog(100).catch(() => []);
+      const stockByProductId = new Map(
+        catalog.map((product) => [product.productId, product.stock]),
+      );
+      setItems(
+        data.map((item) => ({
+          ...normalizeProductImage(item),
+          stock: item.stock ?? stockByProductId.get(item.productId),
+          selected: true,
+        })),
+      );
     } catch {
       setItems([]);
       toast("장바구니를 불러오지 못했습니다.", "error");
@@ -149,8 +164,26 @@ export default function CartClient() {
     const item = items.find((candidate) => candidate.cartId === cartId);
     if (!item) return;
 
-    const targetQty = Math.max(1, Math.min(10, item.quantity + delta));
-    if (targetQty === item.quantity) return;
+    const availableStock = Number(item.stock);
+    const maxQuantity = Number.isFinite(availableStock)
+      ? Math.max(1, Math.min(10, availableStock))
+      : 10;
+    const targetQty = Math.max(
+      1,
+      Math.min(maxQuantity, item.quantity + delta),
+    );
+    if (targetQty === item.quantity) {
+      if (delta > 0) {
+        toast(
+          maxQuantity < 10
+            ? `재고가 ${maxQuantity}개라 더 담을 수 없습니다.`
+            : "상품 1개당 최대 10개까지 담을 수 있습니다.",
+          "error",
+        );
+      }
+      return;
+    }
+
 
     try {
       const response = await apiFetch(
@@ -520,10 +553,15 @@ function CartRow({
             <span className="w-6 text-center text-sm font-medium text-gray-800">
               {item.quantity}
             </span>
-            <button
-              type="button"
-              onClick={() => onQuantity(1)}
-              disabled={item.quantity >= 10}
+              <button
+                type="button"
+                onClick={() => onQuantity(1)}
+                disabled={
+                  item.quantity >=
+                  (Number.isFinite(Number(item.stock))
+                    ? Math.max(1, Math.min(10, Number(item.stock)))
+                    : 10)
+                }
               className="flex h-7 w-7 items-center justify-center rounded border border-gray-300 text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-50"
             >
               <i className="ri-add-line text-sm" />

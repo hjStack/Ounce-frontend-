@@ -24,6 +24,7 @@ export interface CartItem {
     finalPrice: number;
     timeDeal?: boolean;
     imageUrl?: string;
+    stock?: number;
     quantity: number;
 }
 
