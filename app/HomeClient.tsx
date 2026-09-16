@@ -115,7 +115,7 @@ export default function HomeClient() {
             </h2>
             <p className="text-sm leading-6 text-foreground-500">
               홈페이지에 표시된 상품과 가격뿐 아니라 구독 배송비 0원, 메뉴 수,
-              조리 시간, 새벽배송, 미드나이트 세일, 1인분 소분 등의 내용은
+              새벽배송, 미드나이트 세일, 1인분 소분 등의 내용은
               서비스 준비를 위한 임시 정보입니다. 정식 오픈 전 실제 운영
               정책에 따라 변경될 수 있습니다.
             </p>
