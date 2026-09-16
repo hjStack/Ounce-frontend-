@@ -134,6 +134,13 @@ export const CATEGORIES: Category[] = [
     desktop: false,
   },
   {
+    key: "rice",
+    slug: "rice",
+    label: "밥·덮밥",
+    icon: "ri-bowl-line",
+    desktop: false,
+  },
+  {
     key: "salad",
     slug: "salad",
     label: "간단 아침식사",
@@ -148,6 +155,7 @@ const CATEGORY_PATTERNS: Record<string, RegExp> = {
   meat: /(고기|구이|불고기|삼겹|제육|갈비|스테이크|닭|치킨)/,
   nabe: /(나베|샤브|전골)/,
   snack: /(떡볶이|해물|새우|오징어|분식|볶음밥)/,
+  rice: /(밥|덮밥|비빔밥|볶음밥|리조또|죽)/,
   salad: /(아침|브런치|샐러드|죽|수프|스프|계란|달걀|토스트|샌드위치|요거트)/,
 };
 
