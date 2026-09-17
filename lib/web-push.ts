@@ -28,6 +28,14 @@ export async function subscribeToMidnightPush() {
   }
 
   const publicKey = process.env.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY;
+
+
+  console.log(
+    "VAPID public key loaded:",
+    Boolean(publicKey),
+    publicKey?.slice(0, 4)
+  );
+
   if (!publicKey) throw new Error("PUSH_PUBLIC_KEY_MISSING");
 
   const permission = await Notification.requestPermission();
