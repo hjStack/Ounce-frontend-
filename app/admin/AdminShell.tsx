@@ -7,6 +7,7 @@ const NAV = [
     { href: "/admin/timedeal", label: "미드나이트 관리", icon: "ri-moon-line" },
     { href: "/admin/orders", label: "주문 관리", icon: "ri-file-list-3-line" },
     { href: "/admin/members", label: "회원 관리", icon: "ri-group-line" },
+    { href: "/admin/coupons", label: "쿠폰 관리", icon: "ri-coupon-3-line" },
     { href: "/admin/qna", label: "문의 및 리뷰", icon: "ri-question-answer-line" },
 ];
 

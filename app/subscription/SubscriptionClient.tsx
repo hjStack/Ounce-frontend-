@@ -73,6 +73,7 @@ import { apiFetch } from "@/lib/api";
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
 const DAY_KEYS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"] as const;
+const PENDING_TRANSFER_KEY = "ounce.subscription.pending-transfer";
 
 type ActionKey =
   | "meals"
@@ -381,6 +382,7 @@ function cycleStatusLabel(cycle: SubscriptionCycle) {
   if (status.includes("SUCCESS") || status === "PAID") return "결제 성공";
   if (status.includes("FAIL")) return "결제 실패";
   if (status.includes("SKIP")) return "건너뜀";
+  if (status.includes("PENDING")) return "결제 대기";
   if (status.includes("DRAFT")) return "결제 예정";
   if (status.includes("READY") || status.includes("PENDING")) return "대기";
   if (status.includes("DELIVER")) return "배송 완료";
@@ -560,7 +562,48 @@ export default function SubscriptionClient() {
           setCycles([]);
           return;
         }
-        setCycles(normalizeCycles(await response.json().catch(() => null)));
+        const loadedCycles = normalizeCycles(await response.json().catch(() => null));
+        let nextCycles = loadedCycles;
+        try {
+          const pendingTransfer = localStorage.getItem(PENDING_TRANSFER_KEY);
+          if (pendingTransfer) {
+            const data = JSON.parse(pendingTransfer) as {
+              amount?: number;
+              createdAt?: string;
+              status?: string;
+            };
+            const pendingTime = data.createdAt ? new Date(data.createdAt).getTime() : 0;
+            const hasPaidThisWeek = loadedCycles.some((cycle) => {
+              const status = String(
+                cycle.status || cycle.paymentStatus || "",
+              ).toUpperCase();
+              const paymentTime = cyclePaymentDateOf(cycle)
+                ? new Date(cyclePaymentDateOf(cycle) as string).getTime()
+                : 0;
+              return (
+                (status.includes("SUCCESS") || status === "PAID") &&
+                pendingTime > 0 &&
+                paymentTime > 0 &&
+                Math.abs(paymentTime - pendingTime) <= 7 * 24 * 60 * 60 * 1000
+              );
+            });
+            if (hasPaidThisWeek) {
+              localStorage.removeItem(PENDING_TRANSFER_KEY);
+              setCycles(loadedCycles);
+              return;
+            }
+            const pendingCycle: SubscriptionCycle = {
+              cycleId: -1,
+              status: data.status === "PAYMENT_COMPLETED" ? "PAYMENT_COMPLETED" : "PAYMENT_PENDING",
+              amount: Number(data.amount) || 0,
+              createdAt: data.createdAt || new Date().toISOString(),
+            };
+            nextCycles = [pendingCycle, ...loadedCycles];
+          }
+        } catch {
+          nextCycles = loadedCycles;
+        }
+        setCycles(nextCycles);
       } catch {
         setCycles([]);
       }

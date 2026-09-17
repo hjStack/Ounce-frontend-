@@ -16,6 +16,7 @@ import type { Order, OrderItem, PageResponse } from "../../../types/api";
 import { apiFetch } from "@/lib/api";
 
 const PAGE_SIZE = 20;
+const PENDING_TRANSFER_KEY = "ounce.subscription.pending-transfer";
 
 const STATUS_OPTIONS = [
   { key: "ALL", label: "전체" },
@@ -96,6 +97,26 @@ function orderDate(order: Order) {
   );
 }
 
+function orderCreatedAt(order: Order) {
+  return (
+    order.createdAt ||
+    order.createdDate ||
+    order.created_at ||
+    order.orderDate ||
+    order.orderedAt ||
+    order.ordered_at
+  );
+}
+
+function paymentDeadline(order: Order) {
+  const createdAt = orderCreatedAt(order);
+  if (!createdAt) return "-";
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) return "-";
+  date.setDate(date.getDate() + 3);
+  return formatDate(date.toISOString(), true);
+}
+
 function orderAmount(order: Order) {
   return Number(
     order.paymentAmount ??
@@ -145,6 +166,30 @@ function summaryProduct(order: Order) {
   return items.length > 1 ? `${first} 외 ${items.length - 1}건` : first;
 }
 
+function pendingTransferOrder(): Order | null {
+  try {
+    const raw = localStorage.getItem(PENDING_TRANSFER_KEY);
+    if (!raw) return null;
+    const pending = JSON.parse(raw) as {
+      amount?: number;
+      createdAt?: string;
+      status?: string;
+    };
+    const amount = Number(pending.amount) || 0;
+    if (amount <= 0) return null;
+    return {
+      orderId: -1,
+      orderNumber: "SUBSCRIPTION-TRANSFER",
+      totalAmount: amount,
+      status: pending.status || "PAYMENT_WAITING",
+      createdAt: pending.createdAt,
+      memberName: "구독 상품",
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminOrdersClient() {
   const { toast, confirm } = useToast();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -184,15 +229,27 @@ export default function AdminOrdersClient() {
           response.status === 501
         ) {
           toast("백엔드 관리자 주문 API가 아직 연결되지 않았습니다.", "error");
-          setOrders([]);
-          setTotalElements(0);
+          const localOrder = pendingTransferOrder();
+          const pending =
+            localOrder &&
+            (nextStatus === "ALL" || localOrder.status === nextStatus)
+              ? localOrder
+              : null;
+          setOrders(pending ? [pending] : []);
+          setTotalElements(pending ? 1 : 0);
           setTotalPages(1);
           return;
         }
         if (!response.ok) throw new Error("ADMIN_ORDERS_FAILED");
 
         const data = (await response.json()) as OrderListResponse | Order[];
-        const nextOrders = readOrders(data);
+        const nextOrders = [...readOrders(data)];
+        if (nextStatus === "ALL" || nextStatus === "PAYMENT_WAITING" || nextStatus === "PAYMENT_COMPLETED") {
+          const pending = pendingTransferOrder();
+          if (pending && (nextStatus === "ALL" || pending.status === nextStatus)) {
+            nextOrders.unshift(pending);
+          }
+        }
         setOrders(nextOrders);
         setPage(readPage(data, nextPage));
         setTotalPages(readTotalPages(data));
@@ -272,9 +329,29 @@ export default function AdminOrdersClient() {
     if (nextStatus === order.status) return;
 
     const ok = await confirm("주문 상태를 변경하시겠습니까?", {
-      description: `${orderCode(order)} 상태를 ${STATUS_LABELS[nextStatus] || nextStatus}(으)로 변경합니다.`,
+      description: ` 상태를 ${STATUS_LABELS[nextStatus] || nextStatus}(으)로 변경합니다.`,
     });
     if (!ok) return;
+
+    if (order.orderId < 0) {
+      if (nextStatus === "PAYMENT_COMPLETED") {
+        const raw = localStorage.getItem(PENDING_TRANSFER_KEY);
+        const pending = raw ? JSON.parse(raw) as Record<string, unknown> : {};
+        localStorage.setItem(
+          PENDING_TRANSFER_KEY,
+          JSON.stringify({ ...pending, status: "PAYMENT_COMPLETED" }),
+        );
+        setOrders((current) =>
+          current.map((item) =>
+            item.orderId === order.orderId
+              ? { ...item, status: nextStatus }
+              : item,
+          ),
+        );
+        toast("입금을 확인하고 주문을 확정했습니다.");
+      }
+      return;
+    }
 
     setUpdatingId(order.orderId);
     try {
@@ -428,7 +505,20 @@ export default function AdminOrdersClient() {
                               <StatusBadge status={order.status} />
                             </td>
                             <td className="px-5 py-3">
-                              <div className="flex justify-end">
+                              <div className="flex justify-end gap-2">
+                                {order.status === "PAYMENT_WAITING" && (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      void updateStatus(order, "PAYMENT_COMPLETED")
+                                    }
+                                    disabled={updatingId === order.orderId}
+                                    className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary-600 px-3 text-xs font-bold text-white hover:bg-primary-700 disabled:opacity-40"
+                                  >
+                                    <i className="ri-checkbox-circle-line" />
+                                    주문 확정
+                                  </button>
+                                )}
                                 <select
                                   value={order.status}
                                   disabled={updatingId === order.orderId}
@@ -586,6 +676,11 @@ function OrderDetail({ order }: { order: Order }) {
           />
           <DetailLine label="총 결제" value={won(orderAmount(order))} strong />
         </dl>
+        {order.status === "PAYMENT_WAITING" && (
+          <p className="mt-3 rounded-lg bg-yellow-50 px-3 py-2 text-xs leading-5 text-yellow-800">
+            입금 기한: {paymentDeadline(order)} · 3일 이내 미입금 시 주문을 취소하고 문자 안내가 필요합니다.
+          </p>
+        )}
         {order.memo && (
           <p className="mt-3 rounded-lg bg-gray-50 px-3 py-2 text-xs leading-5 text-gray-500">
             {order.memo}

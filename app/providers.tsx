@@ -20,6 +20,25 @@ const BANNER = String.raw`
 
 export default function Providers({ children }: { children: ReactNode }) {
     useEffect(() => {
+        try {
+            for (const key of [
+                "ounce.member.created",
+                "ounce.midnight-alert.enabled",
+            ]) {
+                window.localStorage.removeItem(key);
+            }
+            for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+                const key = window.localStorage.key(index);
+                if (key?.startsWith("ounce.signup-benefit-toast.seen.")) {
+                    window.localStorage.removeItem(key);
+                }
+            }
+        } catch {
+            // 브라우저 저장소를 사용할 수 없는 환경에서는 건너뛴다.
+        }
+    }, []);
+
+    useEffect(() => {
         console.info(
             `%c${BANNER}`,
             "color: #2f7a5f; font-weight: 700; font-family: monospace; line-height: 1.2;"

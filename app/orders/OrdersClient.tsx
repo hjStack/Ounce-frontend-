@@ -9,6 +9,8 @@ import { won } from "../../lib/products";
 import type { Order } from "../../types/api";
 import { apiFetch } from "@/lib/api";
 
+const PENDING_TRANSFER_KEY = "ounce.subscription.pending-transfer";
+
 const FILTERS = [
   { key: "all", label: "전체" },
   { key: "PAYMENT_WAITING", label: "결제 대기" },
@@ -57,7 +59,38 @@ export default function OrdersClient() {
         return res.json();
       })
       .then((data: Order[] | null) => {
-        if (data) setOrders(data);
+        if (!data) return;
+
+        try {
+          const raw = localStorage.getItem(PENDING_TRANSFER_KEY);
+          const pending = raw
+            ? (JSON.parse(raw) as {
+                amount?: number;
+                createdAt?: string;
+                status?: string;
+              })
+            : null;
+          const amount = Number(pending?.amount) || 0;
+
+          if (amount > 0) {
+            setOrders([
+              {
+                orderId: -1,
+                orderNumber: "SUBSCRIPTION-TRANSFER",
+                totalAmount: amount,
+                status: pending?.status || "PAYMENT_WAITING",
+                createdAt: pending?.createdAt,
+                memberName: "구독 상품",
+              },
+              ...data,
+            ]);
+            return;
+          }
+        } catch {
+          // 저장된 임시 결제 정보가 손상된 경우 서버 주문만 표시합니다.
+        }
+
+        setOrders(data);
       })
       .catch(() => {
         toast("주문 내역을 불러오지 못했습니다.", "error");
@@ -151,7 +184,9 @@ export default function OrdersClient() {
                           </span>
                         </div>
                         <p className="text-sm text-foreground-600">
-                          주문 상세 상품 정보는 서버 응답 확장 후 표시됩니다.
+                          {order.orderId < 0
+                            ? "계좌이체 구독 상품 · 입금 확인 후 배송됩니다."
+                            : "주문 상세 상품 정보는 서버 응답 확장 후 표시됩니다."}
                         </p>
                       </div>
                       <div className="flex shrink-0 items-center gap-4">
@@ -187,12 +222,14 @@ export default function OrdersClient() {
                             {won(order.totalAmount)}
                           </span>
                         </div>
-                        <Link
-                          href={`/orders/${order.orderId}`}
-                          className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
-                        >
-                          상세 정보 보기 <i className="ri-arrow-right-line" />
-                        </Link>
+                        {order.orderId > 0 && (
+                          <Link
+                            href={`/orders/${order.orderId}`}
+                            className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+                          >
+                            상세 정보 보기 <i className="ri-arrow-right-line" />
+                          </Link>
+                        )}
                       </div>
                     )}
                   </article>

@@ -2,7 +2,7 @@
 
 import Script from "next/script";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Footer from "../../components/Footer";
 import { useCart } from "../../components/CartContext";
@@ -17,9 +17,11 @@ import {
   getCouponId,
 } from "../../lib/coupons";
 import {
+  fetchCatalog,
   getProductPrice,
   normalizeProductImage,
   PRODUCT_PLACEHOLDER,
+  subscriptionDiscountPercentOf,
   won,
 } from "../../lib/products";
 import {
@@ -40,21 +42,29 @@ import type {
   Coupon,
   CouponValidation,
   Member,
+  SubscriptionCheckoutResponse,
+  SubscriptionCreateRequest,
   SubscriptionResponse,
 } from "../../types/api";
+
+const PENDING_SUBSCRIPTION_KEY = "ounce.subscription.pending-checkout";
+const PENDING_PAYMENT_KEY = "ounce.checkout.pending-payment";
 
 declare global {
   interface Window {
     daum?: {
       Postcode: new (options: {
-        oncomplete: (data: {
-          userSelectedType: string;
-          roadAddress: string;
-          jibunAddress: string;
-          zonecode: string;
-        }) => void;
+      oncomplete: (data: {
+        userSelectedType: string;
+        roadAddress: string;
+        jibunAddress: string;
+        zonecode: string;
+      }) => void;
+        width?: string;
+        height?: string;
       }) => {
         open: () => void;
+        embed: (container: HTMLElement) => void;
       };
     };
   }
@@ -82,6 +92,10 @@ export default function CheckoutClient() {
     null,
   );
   const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const [addressSearchOpen, setAddressSearchOpen] = useState(false);
+  const addressSearchRef = useRef<HTMLDivElement>(null);
+  const [subscriptionRequest, setSubscriptionRequest] =
+    useState<SubscriptionCreateRequest | null>(null);
 
   useEffect(() => {
     apiFetch("/api/members/me", { credentials: "include" })
@@ -119,6 +133,49 @@ export default function CheckoutClient() {
   }, []);
 
   useEffect(() => {
+    const pendingSubscription = localStorage.getItem(PENDING_SUBSCRIPTION_KEY);
+    if (pendingSubscription) {
+      try {
+        const request = JSON.parse(pendingSubscription) as SubscriptionCreateRequest;
+        setSubscriptionRequest(request);
+        fetchCatalog(80)
+          .then((products) => {
+            const byId = new Map(products.map((product) => [product.productId, product]));
+            const items = Object.entries(request.selection)
+              .map(([id, quantity]): CartItem | null => {
+                const product = byId.get(Number(id));
+                const count = Number(quantity);
+                if (!product || !Number.isFinite(count) || count <= 0) return null;
+                const price = getProductPrice(product);
+                const discount = subscriptionDiscountPercentOf(product) || 10;
+                const finalPrice = Math.round((price * (100 - discount)) / 100);
+                return {
+                  cartId: product.productId,
+                  productId: product.productId,
+                  name: product.name,
+                  basePrice: price,
+                  finalPrice,
+                  imageUrl: product.imageUrl || undefined,
+                  stock: product.stock,
+                  quantity: count,
+                };
+              })
+              .filter((item): item is CartItem => item !== null);
+            if (items.length === 0) {
+              toast("선택한 구독 메뉴를 찾을 수 없습니다.", "error");
+              router.replace("/subscribe");
+              return;
+            }
+            setCart(items);
+          })
+          .catch(() => toast("구독 메뉴를 불러오지 못했습니다.", "error"))
+          .finally(() => setLoading(false));
+        return;
+      } catch {
+        localStorage.removeItem(PENDING_SUBSCRIPTION_KEY);
+      }
+    }
+
     const selectedRaw = sessionStorage.getItem(
       "ounce.checkout.selectedCartIds",
     );
@@ -240,6 +297,7 @@ export default function CheckoutClient() {
 
   const summary = useMemo(() => {
     const shipping =
+      subscriptionRequest ||
       hasSubscriptionFreeShipping ||
       orderAmount === 0 ||
       orderAmount >= FREE_SHIPPING_THRESHOLD
@@ -257,7 +315,7 @@ export default function CheckoutClient() {
       finalPrice: discountedProductTotal + shipping,
       freeShippingGap,
     };
-  }, [couponDiscount, hasSubscriptionFreeShipping, orderAmount, totalItems]);
+  }, [couponDiscount, hasSubscriptionFreeShipping, orderAmount, subscriptionRequest, totalItems]);
 
   const searchAddress = () => {
     if (!window.daum?.Postcode) {
@@ -265,19 +323,30 @@ export default function CheckoutClient() {
       return;
     }
 
+    setAddressSearchOpen(true);
+  };
+
+  useEffect(() => {
+    if (!addressSearchOpen || !window.daum?.Postcode || !addressSearchRef.current) {
+      return;
+    }
+
     new window.daum.Postcode({
+      width: "100%",
+      height: "100%",
       oncomplete: (data) => {
         const nextAddress =
           data.userSelectedType === "R" ? data.roadAddress : data.jibunAddress;
         setZipCode(data.zonecode);
         setAddress(nextAddress);
+        setAddressSearchOpen(false);
         window.setTimeout(
           () => document.getElementById("receiver-address-detail")?.focus(),
           0,
         );
       },
-    }).open();
-  };
+    }).embed(addressSearchRef.current);
+  }, [addressSearchOpen]);
 
   const placeOrder = async () => {
     if (!receiverName.trim()) {
@@ -302,6 +371,33 @@ export default function CheckoutClient() {
 
     setSubmitting(true);
     try {
+      if (subscriptionRequest) {
+        const response = await apiFetch("/api/subscriptions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(subscriptionRequest),
+        });
+        if (response.status === 401 || response.status === 403) {
+          toast("로그인이 필요합니다.", "error");
+          router.push("/login");
+          return;
+        }
+        if (response.status === 409) {
+          toast("이미 이용 중인 구독이 있습니다.", "error");
+          router.push("/subscription");
+          return;
+        }
+        if (!response.ok) {
+          toast("구독 첫 결제에 실패했습니다. 다시 시도해주세요.", "error");
+          return;
+        }
+        const result = (await response.json().catch(() => null)) as SubscriptionCheckoutResponse | null;
+        toast(result?.message || "첫 구독 결제가 완료되었습니다.");
+        router.push("/subscription");
+        return;
+      }
+
       const timeDealItems = cart.filter((item) => item.timeDeal);
       if (timeDealItems.length > 0) {
         const timeDealResponse = await apiFetch("/api/timedeal", {
@@ -376,12 +472,63 @@ export default function CheckoutClient() {
     }
   };
 
+  const openPayment = () => {
+    if (!receiverName.trim() || !receiverPhone.trim()) {
+      toast("받는 분 정보와 연락처를 입력해주세요.", "error");
+      return;
+    }
+    if (!zipCode || !address || !addressDetail.trim()) {
+      toast("배송지를 모두 입력해주세요.", "error");
+      return;
+    }
+    localStorage.setItem(
+      PENDING_PAYMENT_KEY,
+      JSON.stringify({
+        receiverName: receiverName.trim(),
+        receiverPhone: receiverPhone.trim(),
+        zipCode,
+        address,
+        addressDetail: addressDetail.trim(),
+        couponId: selectedCouponId,
+        selectedCartIds: cart.map((item) => item.cartId),
+        subscriptionRequest,
+        amount: summary.finalPrice,
+      }),
+    );
+    router.push("/checkout/payment");
+  };
+
   return (
     <div className="bg-background-cream">
       <Script
         src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"
         strategy="afterInteractive"
       />
+      {addressSearchOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-3 backdrop-blur-sm sm:p-6">
+          <div className="flex h-[min(720px,calc(100dvh-24px))] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex shrink-0 items-center justify-between border-b border-background-200 px-4 py-3 sm:px-5 sm:py-4">
+              <div>
+                <h2 className="text-base font-bold text-foreground-950 sm:text">
+                  주소 검색
+                </h2>
+                <p className="mt-0.5 text-xs text-foreground-500">
+                  도로명이나 건물명을 입력해주세요.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAddressSearchOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-foreground-500 hover:bg-background-100"
+                aria-label="주소 검색 닫기"
+              >
+                <i className="ri-close-line text-xl" />
+              </button>
+            </div>
+            <div ref={addressSearchRef} className="min-h-0 flex-1" />
+          </div>
+        </div>
+      )}
       <main className="min-h-screen pb-20 pt-20 md:pt-24">
         <div className="mx-auto w-full max-w-7xl px-4 py-6 md:px-8 lg:px-12">
           <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -400,11 +547,11 @@ export default function CheckoutClient() {
               </p>
             </div>
             <Link
-              href="/cart"
+              href={subscriptionRequest ? "/subscribe" : "/cart"}
               className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-colors hover:bg-gray-50"
             >
               <i className="ri-arrow-left-line" />
-              장바구니로
+              {subscriptionRequest ? "메뉴 다시 선택" : "장바구니로"}
             </Link>
           </div>
 
@@ -599,14 +746,14 @@ export default function CheckoutClient() {
                         value={zipCode}
                         readOnly
                         placeholder="주소 검색을 눌러주세요"
-                        className="h-12 flex-1 cursor-default rounded-lg border border-gray-200 bg-gray-100 px-4 text-sm text-gray-700 outline-none"
+                        className="h-12 min-h-12 w-full cursor-default rounded-lg border border-gray-200 bg-gray-100 px-4 text-sm text-gray-700 outline-none sm:flex-1"
                       />
                       <button
                         type="button"
                         onClick={searchAddress}
-                        className="inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[#3b4055] bg-white px-4 text-sm font-semibold text-[#3b4055] transition-colors hover:bg-gray-50"
+                        className="inline-flex h-12 w-full shrink-0 items-center justify-center gap-2 rounded-lg border border-primary-500 bg-primary-500 px-5 text-sm font-bold text-white shadow-sm transition-colors hover:border-primary-600 hover:bg-primary-600 sm:w-auto"
                       >
-                        <i className="ri-search-line" /> 주소 검색
+                        <i className="ri-search-line text-lg" /> 주소 검색
                       </button>
                     </div>
                   </div>
@@ -697,7 +844,7 @@ export default function CheckoutClient() {
 
                 <button
                   type="button"
-                  onClick={() => void placeOrder()}
+                  onClick={openPayment}
                   disabled={submitting || loading || cart.length === 0}
                   className="flex h-12 w-full items-center justify-center gap-2 rounded-md bg-[#3b4055] font-semibold text-white shadow-sm transition-colors hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -710,7 +857,9 @@ export default function CheckoutClient() {
                   />
                   {submitting
                     ? "결제 처리 중..."
-                    : `${won(summary.finalPrice)} 결제하기`}
+                    : subscriptionRequest
+                      ? `${won(summary.finalPrice)} 결제하기`
+                      : `${won(summary.finalPrice)} 결제하기`}
                 </button>
 
                 <div className="mt-4 flex items-start gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3">

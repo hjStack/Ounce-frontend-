@@ -11,9 +11,12 @@ import { useToast } from "../../components/ToastContext";
 import { apiFetch } from "@/lib/api";
 import {
   fetchCatalog,
+  getProductPrice,
   PRODUCT_PLACEHOLDER,
   splitName,
   stockState,
+  subscriptionDiscountPercentOf,
+  won,
 } from "../../lib/products";
 import { MAX_MEALS, MIN_MEALS, planOf, storageDetail } from "../../lib/plan";
 import {
@@ -28,12 +31,13 @@ import {
 import { productIdsOf, selectionFromSlots } from "../../lib/subscription-menu";
 import type {
   Product,
-  SubscriptionCheckoutResponse,
   SubscriptionCreateRequest,
   SubscriptionResponse,
 } from "../../types/api";
 
 const DAY_LABELS = ["월", "화", "수", "목", "금", "토", "일"];
+const PENDING_SUBSCRIPTION_KEY = "ounce.subscription.pending-checkout";
+const SAVED_SUBSCRIPTION_MENU_KEY = "ounce.subscription.saved-menu";
 
 function nextSundayDeadline() {
   const now = new Date();
@@ -44,26 +48,6 @@ function nextSundayDeadline() {
   if (deadline.getTime() <= now.getTime())
     deadline.setDate(deadline.getDate() + 7);
   return deadline;
-}
-
-async function readApiMessage(response: Response, fallback: string) {
-  let text = "";
-  try {
-    text = await response.text();
-  } catch {
-    return fallback;
-  }
-
-  if (!text.trim()) return fallback;
-
-  try {
-    const data = JSON.parse(text) as { message?: unknown };
-    return typeof data.message === "string" && data.message.trim()
-      ? data.message
-      : text;
-  } catch {
-    return text;
-  }
 }
 
 function pickSlots(products: Product[], count: number) {
@@ -91,10 +75,25 @@ export default function SubscribeClient() {
   const [submitting, setSubmitting] = useState(false);
   const [countdown, setCountdown] = useState("-");
   const [menuPickerIndex, setMenuPickerIndex] = useState<number | null>(null);
+  const [savedMenu, setSavedMenu] = useState<{
+    mealsPerWeek: number;
+    productIds: number[];
+  } | null>(null);
+  const [mealsHydrated, setMealsHydrated] = useState(false);
   const selected = useMemo(() => planOf(meals), [meals]);
   const selectedProductIds = productIdsOf(slots);
   const selectedSelection = selectionFromSlots(slots);
   const menuComplete = selectedProductIds.length === selected.meals;
+  const selectedSubscriptionTotal = useMemo(
+    () =>
+      slots.reduce((total, product) => {
+        if (!product) return total;
+        const price = getProductPrice(product);
+        const discount = subscriptionDiscountPercentOf(product) || 10;
+        return total + Math.round((price * (100 - discount)) / 100);
+      }, 0),
+    [slots],
+  );
 
   const resolveSubscriptionConflict = async () => {
     try {
@@ -140,6 +139,55 @@ export default function SubscribeClient() {
   }, []);
 
   useEffect(() => {
+    try {
+      const raw = localStorage.getItem(SAVED_SUBSCRIPTION_MENU_KEY);
+      if (!raw) {
+        setMealsHydrated(true);
+        return;
+      }
+      const data = JSON.parse(raw) as {
+        mealsPerWeek?: number;
+        productIds?: number[];
+      };
+      if (
+        Number.isInteger(data.mealsPerWeek) &&
+        Array.isArray(data.productIds) &&
+        data.productIds.length === data.mealsPerWeek
+      ) {
+        setMeals(Math.min(MAX_MEALS, Math.max(MIN_MEALS, data.mealsPerWeek)));
+        setSavedMenu({
+          mealsPerWeek: data.mealsPerWeek,
+          productIds: data.productIds.map(Number),
+        });
+      }
+    } catch {
+      localStorage.removeItem(SAVED_SUBSCRIPTION_MENU_KEY);
+    } finally {
+      setMealsHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!mealsHydrated) return;
+    try {
+      const raw = localStorage.getItem(SAVED_SUBSCRIPTION_MENU_KEY);
+      const previous = raw
+        ? (JSON.parse(raw) as { productIds?: number[] })
+        : null;
+      const productIds =
+        previous?.productIds?.length === meals
+          ? previous.productIds
+          : [];
+      localStorage.setItem(
+        SAVED_SUBSCRIPTION_MENU_KEY,
+        JSON.stringify({ mealsPerWeek: meals, productIds }),
+      );
+    } catch {
+      // 저장소 접근이 제한된 환경에서는 현재 화면 상태만 유지한다.
+    }
+  }, [meals, mealsHydrated]);
+
+  useEffect(() => {
     fetchCatalog(80)
       .then((products) => setCatalog(products))
       .catch(() => toast("밀키트 목록을 불러오지 못했습니다.", "error"))
@@ -147,8 +195,22 @@ export default function SubscribeClient() {
   }, [toast]);
 
   useEffect(() => {
+    if (catalog.length === 0) return;
+    if (savedMenu) {
+      const byId = new Map(catalog.map((product) => [product.productId, product]));
+      const restored = savedMenu.productIds
+        .map((productId) => byId.get(productId) || null)
+        .filter((product): product is Product => product !== null);
+      setSlots(
+        restored.length === selected.meals
+          ? restored
+          : pickSlots(catalog, selected.meals),
+      );
+      setSavedMenu(null);
+      return;
+    }
     setSlots(pickSlots(catalog, selected.meals));
-  }, [catalog, selected.meals]);
+  }, [catalog, savedMenu, selected.meals]);
 
   const shuffle = () => {
     setSlots(pickSlots(catalog, selected.meals));
@@ -233,48 +295,48 @@ export default function SubscribeClient() {
         mealsPerWeek: selected.meals,
         selection: selectedSelection,
       };
-      const response = await apiFetch("/api/subscriptions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(request),
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        toast("로그인 후 구독을 신청할 수 있습니다.", "error");
-        router.push("/login");
-        return;
-      }
-      if (response.status === 409) {
-        await resolveSubscriptionConflict();
-        return;
-      }
-      if (!response.ok) {
-        toast(
-          await readApiMessage(response, "구독 신청에 실패했습니다."),
-          "error",
-        );
-        return;
-      }
-
-      const created = (await response
-        .json()
-        .catch(() => null)) as SubscriptionCheckoutResponse | null;
-      const outcome = String(created?.outcome || "").toUpperCase();
-      const failed = outcome.includes("FAIL") || outcome.includes("DECLIN");
-      toast(
-        created?.message ||
-          (failed
-            ? "구독은 생성됐지만 결제가 실패했습니다. 내 구독에서 결제 수단 확인 후 재시도할 수 있습니다."
-            : `주 ${selected.meals}끼 구독이 시작되었습니다.`),
-        failed ? "error" : "success",
-      );
-      router.push("/subscription");
+      localStorage.setItem(PENDING_SUBSCRIPTION_KEY, JSON.stringify(request));
+      router.push("/checkout");
     } catch {
-      toast("서버와 통신 중 문제가 발생했습니다.", "error");
+      toast("결제 정보를 준비하지 못했습니다.", "error");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const goToCheckout = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (authLoading) return;
+    if (!isAuthenticated) {
+      toast("로그인 후 결제할 수 있습니다.", "error");
+      router.push("/login");
+      return;
+    }
+    if (catalog.length > 0 && !menuComplete) {
+      toast(`이번 주 메뉴 ${selected.meals}개를 모두 선택해주세요.`, "error");
+      return;
+    }
+
+    const request: SubscriptionCreateRequest = {
+      mealsPerWeek: selected.meals,
+      selection: selectedSelection,
+    };
+    localStorage.setItem(PENDING_SUBSCRIPTION_KEY, JSON.stringify(request));
+    router.push("/checkout");
+  };
+
+  const saveMenu = () => {
+    localStorage.setItem(
+      SAVED_SUBSCRIPTION_MENU_KEY,
+      JSON.stringify({
+        mealsPerWeek: selected.meals,
+        productIds: selectedProductIds,
+        selection: selectedSelection,
+        savedAt: new Date().toISOString(),
+      }),
+    );
+    toast("이번 주 메뉴를 저장했습니다.");
   };
 
   const selectMenuProduct = (product: Product) => {
@@ -445,13 +507,21 @@ export default function SubscribeClient() {
                   다음 회차 메뉴를 바꿀 수 있습니다. 메뉴를 바꾸지 않으면 같은
                   메뉴가 매주 자동 배송됩니다.
                 </p>
+                <div className="mb-4 flex items-center justify-between rounded-lg bg-white/10 px-3.5 py-3 text-xs">
+                  <span className="text-white/60">
+                    선택 메뉴 {selectedProductIds.length}/{selected.meals}개
+                  </span>
+                  <span className="font-bold text-primary-200">
+                    구독가 {won(selectedSubscriptionTotal)}
+                  </span>
+                </div>
                 <button
                   type="submit"
                   disabled={
                     submitting ||
                     authLoading ||
-                    subscriptionLoading ||
-                    !menuComplete
+                    (!subscription || !isCurrentSubscription(subscription)) &&
+                    (subscriptionLoading || (isAuthenticated && !menuComplete))
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
                 >
@@ -468,9 +538,9 @@ export default function SubscribeClient() {
                         ? "내 구독 보기"
                         : isAuthenticated
                           ? menuComplete
-                            ? "첫 주 메뉴 저장하고 결제하기"
-                            : "첫 주 메뉴를 모두 선택해주세요"
-                          : "로그인하고 신청하기"}
+                            ? "첫 주 메뉴 저장하고 결제 페이지로 이동"
+                            : "메뉴를 더 선택해주세요"
+                          : "로그인 후 결제하기"}
                 </button>
               </form>
             </div>
@@ -529,10 +599,40 @@ export default function SubscribeClient() {
             </div>
           )}
 
-          <div className="mt-8 flex justify-center">
+          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={saveMenu}
+              disabled={loading || !menuComplete}
+              className="inline-flex items-center justify-center gap-2 rounded-lg border border-primary-200 bg-primary-50 px-5 py-3 text-sm font-bold text-primary-700 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <i className="ri-save-3-line" />
+              메뉴 저장하기
+            </button>
+            <form onSubmit={goToCheckout}>
+              <button
+                type="submit"
+                disabled={
+                  submitting ||
+                  authLoading ||
+                  subscriptionLoading ||
+                  (isAuthenticated && !menuComplete)
+                }
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary-500 px-6 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <i className="ri-bank-card-line" />
+                {submitting
+                  ? "결제 페이지 준비 중..."
+                  : !isAuthenticated
+                      ? "로그인 후 결제하기"
+                      : menuComplete
+                        ? "결제하기"
+                        : "메뉴를 모두 선택해주세요"}
+              </button>
+            </form>
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 rounded-lg bg-primary-500 px-5 py-3 text-sm font-bold text-white hover:bg-primary-600"
+              className="inline-flex items-center gap-2 rounded-lg border border-background-200 bg-white px-5 py-3 text-sm font-bold text-foreground-700 hover:border-primary-200 hover:text-primary-700"
             >
               밀키트 먼저 둘러보기 <i className="ri-arrow-right-line" />
             </Link>
