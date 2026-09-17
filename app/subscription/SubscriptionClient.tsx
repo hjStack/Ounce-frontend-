@@ -1868,6 +1868,9 @@ function WeeklyMenuSection({
           <p className="mt-1 text-xs font-semibold text-primary-700">
             메뉴를 변경하지 않으면 다음 회차에도 같은 메뉴가 자동 배송됩니다.
           </p>
+          <p className="mt-1 text-xs font-semibold text-amber-700">
+            결제가 완료된 후에는 해당 회차의 구독 상품을 변경할 수 없습니다.
+          </p>
           <p className="mt-2 text-xs font-semibold text-foreground-500">
             선택 {selectedMealCount}끼
             {skippedDayCount > 0 ? ` · 쉬어가기 ${skippedDayCount}일` : ""}
