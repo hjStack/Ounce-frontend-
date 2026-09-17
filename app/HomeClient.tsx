@@ -161,25 +161,31 @@ export default function HomeClient() {
           </div>
 
           <div className="flex w-full flex-col gap-4 md:w-1/2">
-            <FeatureCard
+          <FeatureCard
               dark
               icon="ri-moon-line"
               title="미드나이트 세일"
               label="매일 22:00 - 23:00"
-              description="한 시간만 열리는 특별한 가격의 밀키트. 선착순 한정 수량."
+              description="하루 한 시간, 밀키트를 특별한 가격에 만나보세요. 선착순 한정 수량이에요."
             />
             <FeatureCard
               icon="ri-truck-line"
               title="구독 무료배송"
               label="배송비 0원 · 서울 새벽배송"
-              description="구독은 끼 수와 관계없이 무료배송"
+              description="구독하면 끼 수와 관계없이 배송비가 무료예요."
             />
-            <FeatureCard
-              icon="ri-knife-line"
-              title="1인분 소분"
-              label="남기지 않는 정량 포장"
-              description="혼자여도 딱 필요한 만큼만. 버리는 음식 없이 알뜰하게."
-            />
+           <FeatureCard
+            icon="ri-star-smile-line"
+            title="리뷰 적립 혜택"
+            label="일반 리뷰 300P · 사진 리뷰 500P"
+            description="구매한 상품의 리뷰를 남기면 포인트를 적립해 드려요."
+          />
+           <FeatureCard
+  icon="ri-knife-line"
+  title="1인분 소분"
+  label="한 끼 딱 맞는 정량 포장"
+  description="혼자 먹어도 재료가 남지 않게, 필요한 만큼만 담았어요."
+/>
           </div>
         </section>
 
