@@ -29,3 +29,13 @@ ENV PORT=3000
 
 # Next.js 내장 서버 대신 standalone으로 생성된 가벼운 Node.js 서버 실행
 CMD ["node", "server.js"]
+
+FROM node:20-alpine AS builder
+  WORKDIR /app
+
+  ARG NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY
+  ENV NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY=$NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY
+
+  COPY --from=deps /app/node_modules ./node_modules
+  COPY . .
+  RUN npm run build
