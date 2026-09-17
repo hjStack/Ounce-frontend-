@@ -736,9 +736,7 @@ export default function ProductRegister() {
                       {Number(product.discountPercent || 0)}%
                     </td>
                     <td className="px-5 py-3 font-semibold text-primary-600">
-                      {(subscriptionDiscountPercentOf(product) ?? 0) > 0
-                        ? `구독 ${subscriptionDiscountPercentOf(product)}%`
-                        : "-"}
+                      구독 시 {(subscriptionDiscountPercentOf(product) || 10)}% 할인
                     </td>
                     <td className="px-5 py-3 tabular-nums">
                       {Number(product.stock || 0).toLocaleString("ko-KR")}개

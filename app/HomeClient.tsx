@@ -197,8 +197,8 @@ export default function HomeClient() {
                   구독 시작하기 — 한 주 저녁을 미리 정해두세요
                 </p>
                 <p className="mt-0.5 text-xs text-white/70">
-                  구독은 배송비 0원 · 일주일에 4~7끼 · 메뉴는 일요일 23시 전까지
-                  직접 변경
+                  구독은 배송비 0원 · 일주일에 4~7끼 <br/>
+                  고객님이 직접 선택하세요
                 </p>
               </div>
             </div>

@@ -102,6 +102,7 @@ export interface ProductSliceResponse {
 export interface Review {
     reviewId: number;
     productId: number;
+    memberId?: number;
     writerName: string;
     rating: number;
     content: string;

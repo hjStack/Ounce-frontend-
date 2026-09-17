@@ -34,7 +34,7 @@ export default function ProductDetailClient({
   productId: string;
 }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const { items: cartItems, refresh } = useCart();
   const { toast, confirm } = useToast();
 
@@ -119,6 +119,9 @@ export default function ProductDetailClient({
     ? Math.min(10, Math.max(1, product.stock))
     : 10;
   const price = product ? getProductPrice(product) : 0;
+  const subscriptionDiscountPercent = product
+    ? Number(product.subscriptionDiscountPercent) || 10
+    : 10;
   const total = price * quantity;
 
   const sortedReviews = useMemo(
@@ -176,7 +179,7 @@ export default function ProductDetailClient({
         return false;
       }
       if (!res.ok) {
-        toast("재고 또는 장바구니 최대 수량을 확인해주세요.", "error");
+        toast("상품을 구매할 수 없어요.", "error");
         return false;
       }
       await refresh();
@@ -231,7 +234,11 @@ export default function ProductDetailClient({
         toast("리뷰 등록에 실패했습니다.", "error");
         return;
       }
-      toast("리뷰가 등록되었습니다.");
+      toast(
+        reviewImageFile
+          ? "사진 리뷰가 등록되었습니다. 500P가 적립되었습니다."
+          : "리뷰가 등록되었습니다. 300P가 적립되었습니다.",
+      );
       setReviewOpen(false);
       setReviewContent("");
       setReviewImageFile(null);
@@ -244,8 +251,11 @@ export default function ProductDetailClient({
   };
 
   const deleteReview = async (reviewId: number) => {
+    const review = reviews.find((item) => item.reviewId === reviewId);
+    const reward = review?.imageUrl || review?.imageUrls?.length ? 500 : 300;
     const ok = await confirm("작성하신 리뷰를 삭제하시겠습니까?", {
       kind: "delete",
+      description: `삭제하면 적립된 ${reward}P도 함께 회수됩니다. 삭제한 리뷰는 복구할 수 없습니다.`,
     });
     if (!ok) return;
 
@@ -266,7 +276,7 @@ export default function ProductDetailClient({
         toast("리뷰 삭제에 실패했습니다.", "error");
         return;
       }
-      toast("리뷰가 삭제되었습니다.");
+      toast(`리뷰가 삭제되었습니다. ${reward}P가 회수되었습니다.`);
       await loadReviews();
     } catch {
       toast("오류가 발생했습니다.", "error");
@@ -377,9 +387,9 @@ export default function ProductDetailClient({
                   {product.expirationDiscountText}
                 </Tag>
               )}
-              {Number(product.subscriptionDiscountPercent || 0) > 0 && (
+              {product && (
                 <Tag className="bg-primary-500 text-white">
-                  구독 할인 {Number(product.subscriptionDiscountPercent)}%
+                  구독 시 {subscriptionDiscountPercent}% 할인
                 </Tag>
               )}
               {product.unit && (
@@ -626,6 +636,19 @@ export default function ProductDetailClient({
                       await requireLogin();
                       return;
                     }
+                    const existingReview = reviews.find(
+                      (review) => review.memberId === user?.memberId,
+                    );
+                    if (existingReview) {
+                      const reward = existingReview.imageUrl || existingReview.imageUrls?.length
+                        ? 500
+                        : 300;
+                      toast(
+                        `리뷰는 상품당 한 번만 작성할 수 있어요. 첫 번째 리뷰에 ${reward}P가 지급되었어요.`,
+                        "success",
+                      );
+                      return;
+                    }
                     setSelectedRating(5);
                     setReviewContent("");
                     setReviewImageFile(null);
@@ -669,13 +692,16 @@ export default function ProductDetailClient({
                             <span className="text-xs text-foreground-400">
                               {formatDate(review.createdAt)}
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => void deleteReview(review.reviewId)}
-                              className="text-xs text-foreground-400 underline"
-                            >
-                              삭제
-                            </button>
+                            {user?.memberId !== undefined &&
+                              user.memberId === review.memberId && (
+                                <button
+                                  type="button"
+                                  onClick={() => void deleteReview(review.reviewId)}
+                                  className="text-xs text-foreground-400 underline"
+                                >
+                                  삭제
+                                </button>
+                              )}
                           </div>
                         </div>
                         <p className="qna-body text-sm leading-relaxed text-foreground-700">
@@ -725,6 +751,9 @@ export default function ProductDetailClient({
               <h3 className="text-base font-bold text-foreground-950">
                 리뷰 작성
               </h3>
+              <p className="mr-auto ml-3 text-xs font-medium text-primary-600">
+                일반 리뷰 300P · 사진 리뷰 500P
+              </p>
               <button
                 type="button"
                 onClick={() => setReviewOpen(false)}

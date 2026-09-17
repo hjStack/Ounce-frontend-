@@ -57,8 +57,14 @@ export default function ProductCard({ product }: { product: Product }) {
   const parts = splitName(product.name);
   const state = stockState(product);
   const isTimeDeal = product.status === "TIME_DEAL";
+  // 백엔드에 할인율이 없거나 아직 0으로 저장된 상품도 기본 구독 혜택을 안내한다.
+  const configuredSubscriptionDiscountPercent =
+    subscriptionDiscountPercentOf(product);
   const subscriptionDiscountPercent =
-    subscriptionDiscountPercentOf(product) ?? 0;
+    configuredSubscriptionDiscountPercent &&
+    configuredSubscriptionDiscountPercent > 0
+      ? configuredSubscriptionDiscountPercent
+      : 10;
   const cartItem = cartItems.find(
     (item) => item.productId === product.productId,
   );
@@ -150,7 +156,7 @@ export default function ProductCard({ product }: { product: Product }) {
           )}
           {subscriptionDiscountPercent > 0 && (
             <span className="rounded-md bg-primary-500 px-2 py-1 text-[11px] font-bold text-white shadow-sm">
-              구독 할인 {subscriptionDiscountPercent}%
+              구독 시 {subscriptionDiscountPercent}% 할인
             </span>
           )}
           {state === "low" && (

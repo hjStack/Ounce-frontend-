@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 const NAV = [
     { href: "/admin", label: "대시보드", icon: "ri-dashboard-3-line" },
     { href: "/admin/products", label: "상품 관리", icon: "ri-shopping-bag-3-line" },
+    { href: "/admin/timedeal", label: "미드나이트 관리", icon: "ri-moon-line" },
     { href: "/admin/orders", label: "주문 관리", icon: "ri-file-list-3-line" },
     { href: "/admin/members", label: "회원 관리", icon: "ri-group-line" },
     { href: "/admin/qna", label: "문의 및 리뷰", icon: "ri-question-answer-line" },
