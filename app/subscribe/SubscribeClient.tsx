@@ -279,29 +279,8 @@ export default function SubscribeClient() {
       return;
     }
 
-    if (subscription && isCurrentSubscription(subscription)) {
-      router.push("/subscription");
-      return;
-    }
-
-    if (catalog.length > 0 && !menuComplete) {
-      toast(`이번 주 메뉴 ${selected.meals}개를 모두 선택해주세요.`, "error");
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const request: SubscriptionCreateRequest = {
-        mealsPerWeek: selected.meals,
-        selection: selectedSelection,
-      };
-      localStorage.setItem(PENDING_SUBSCRIPTION_KEY, JSON.stringify(request));
-      router.push("/checkout");
-    } catch {
-      toast("결제 정보를 준비하지 못했습니다.", "error");
-    } finally {
-      setSubmitting(false);
-    }
+    router.push("/subscription");
+    return;
   };
 
   const goToCheckout = (event: FormEvent<HTMLFormElement>) => {
@@ -520,8 +499,7 @@ export default function SubscribeClient() {
                   disabled={
                     submitting ||
                     authLoading ||
-                    (!subscription || !isCurrentSubscription(subscription)) &&
-                    (subscriptionLoading || (isAuthenticated && !menuComplete))
+                    subscriptionLoading
                   }
                   className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:opacity-50"
                 >
@@ -534,13 +512,9 @@ export default function SubscribeClient() {
                     ? "신청 중..."
                     : subscriptionLoading
                       ? "구독 확인 중..."
-                      : subscription && isCurrentSubscription(subscription)
-                        ? "내 구독 보기"
-                        : isAuthenticated
-                          ? menuComplete
-                            ? "첫 주 메뉴 저장하고 결제 페이지로 이동"
-                            : "메뉴를 더 선택해주세요"
-                          : "로그인 후 결제하기"}
+                    : isAuthenticated
+                      ? "내 구독 보기"
+                      : "로그인 후 구독 보기"}
                 </button>
               </form>
             </div>
