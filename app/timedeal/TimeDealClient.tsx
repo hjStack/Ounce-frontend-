@@ -95,6 +95,16 @@ export default function TimeDealClient() {
     const response = await apiFetch("/api/notifications/midnight", {
       method: nextEnabled ? "POST" : "DELETE",
       credentials: "include",
+      ...(nextEnabled
+        ? {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              scheduleTime: "21:50",
+              timezone: "Asia/Seoul",
+              recurring: "DAILY",
+            }),
+          }
+        : {}),
     });
     if (response.status === 401) {
       router.push("/login?redirect=/timedeal");
@@ -237,6 +247,9 @@ export default function TimeDealClient() {
               />
               {midnightAlertEnabled ? "알림 신청 중" : "미드나이트 알림 받기"}
             </button>
+            <p className="mt-3 text-xs text-white/45">
+              매일 밤 9시 50분에 세일 시작 알림을 보내드려요.
+            </p>
           </div>
         </section>
 
