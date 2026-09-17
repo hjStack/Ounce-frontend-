@@ -107,13 +107,15 @@ export default function CheckoutPaymentClient() {
         router.push("/checkout/payment/complete");
         return;
       }
+      if (draft.subscriptionRequest) {
+        localStorage.removeItem(PENDING_PAYMENT_KEY);
+        toast(result?.message || "구독 결제가 완료되었습니다.");
+        router.push("/subscription");
+        return;
+      }
       localStorage.removeItem(PENDING_PAYMENT_KEY);
       setCompleted(true);
-      if (draft.subscriptionRequest) {
-        toast(result?.message || "첫 구독 결제가 완료되었습니다.");
-      } else {
-        toast("결제가 완료되었습니다.");
-      }
+      toast("결제가 완료되었습니다.");
     } catch {
       toast("결제 처리 중 오류가 발생했습니다.", "error");
     } finally {

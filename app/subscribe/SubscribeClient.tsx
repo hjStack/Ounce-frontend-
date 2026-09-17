@@ -279,8 +279,29 @@ export default function SubscribeClient() {
       return;
     }
 
-    router.push("/subscription");
-    return;
+    if (subscription && isCurrentSubscription(subscription)) {
+      router.push("/subscription");
+      return;
+    }
+
+    if (catalog.length > 0 && !menuComplete) {
+      toast(`이번 주 메뉴 ${selected.meals}개를 모두 선택해주세요.`, "error");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const request: SubscriptionCreateRequest = {
+        mealsPerWeek: selected.meals,
+        selection: selectedSelection,
+      };
+      localStorage.setItem(PENDING_SUBSCRIPTION_KEY, JSON.stringify(request));
+      router.push("/checkout");
+    } catch {
+      toast("결제 정보를 준비하지 못했습니다.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const goToCheckout = (event: FormEvent<HTMLFormElement>) => {
@@ -513,7 +534,9 @@ export default function SubscribeClient() {
                     : subscriptionLoading
                       ? "구독 확인 중..."
                     : isAuthenticated
-                      ? "내 구독 보기"
+                      ? subscription && isCurrentSubscription(subscription)
+                        ? "내 구독 보기"
+                        : "구독 시작하기"
                       : "로그인 후 구독 보기"}
                 </button>
               </form>
