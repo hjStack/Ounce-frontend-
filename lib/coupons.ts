@@ -30,6 +30,7 @@ export function couponStatusLabel(status?: string) {
     if (status === "AVAILABLE") return "사용 가능";
     if (status === "USED") return "사용 완료";
     if (status === "EXPIRED") return "기간 만료";
+    if (status === "INACTIVE") return "비활성";
     return status || "상태 확인";
 }
 

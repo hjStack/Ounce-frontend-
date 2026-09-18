@@ -24,6 +24,20 @@ const nextConfig: NextConfig = {
 
     return [
       { source: "/api/:path*", destination: `${backend}/api/:path*` },
+      // Springdoc Swagger UI and its static assets.
+      // Keep these paths on the frontend domain while serving them from the backend.
+      { source: "/swagger-api", destination: `${backend}/swagger-api` },
+      {
+        source: "/swagger-api/:path*",
+        destination: `${backend}/swagger-api/:path*`,
+      },
+      { source: "/swagger-ui/:path*", destination: `${backend}/swagger-ui/:path*` },
+      { source: "/v3/api-docs/:path*", destination: `${backend}/v3/api-docs/:path*` },
+      {
+        source: "/swagger-resources/:path*",
+        destination: `${backend}/swagger-resources/:path*`,
+      },
+      { source: "/webjars/:path*", destination: `${backend}/webjars/:path*` },
       { source: "/oauth2/:path*", destination: `${backend}/oauth2/:path*` },
       {
         source: "/login/oauth2/:path*",

@@ -12,6 +12,11 @@ WORKDIR /app
 ARG NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY
 ENV NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY=$NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY
 
+# next.config.ts rewrites are resolved during `next build`.
+# Pass the backend origin into the build so proxy routes do not fall back to localhost.
+ARG NEXT_PUBLIC_BACKEND_URL
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
+
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 # Next.js 프로젝트 빌드

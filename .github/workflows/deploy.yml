@@ -28,6 +28,7 @@ jobs:
         run: |
          docker build \
            --build-arg NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY="${{ secrets.NEXT_PUBLIC_WEB_PUSH_PUBLIC_KEY }}" \
+           --build-arg NEXT_PUBLIC_BACKEND_URL="$(grep '^NEXT_PUBLIC_BACKEND_URL=' .env | cut -d= -f2-)" \
            -t ${{ secrets.DOCKER_USERNAME }}/ounce-frontend:latest .
          docker push ${{ secrets.DOCKER_USERNAME }}/ounce-frontend:latest
 

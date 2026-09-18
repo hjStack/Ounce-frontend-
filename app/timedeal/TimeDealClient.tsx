@@ -248,7 +248,7 @@ export default function TimeDealClient() {
               {midnightAlertEnabled ? "알림 신청 중" : "미드나이트 알림 받기"}
             </button>
             <p className="mt-3 text-xs text-white/45">
-              매일 밤 9시 50분에 세일 시작 알림을 보내드려요.
+              매일 밤 9시 50분과 55분에 세일 시작 알림을 보내드려요.
             </p>
           </div>
         </section>

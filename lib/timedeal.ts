@@ -1,4 +1,5 @@
 import type { Product } from "../types/api";
+import { normalizeProductImage } from "./products";
 
 export const TIME_DEAL_OPEN_HOUR = 22;
 export const TIME_DEAL_CLOSE_HOUR = 23;
@@ -14,8 +15,27 @@ export type TimeDealPayload =
     };
 
 export function readTimeDealProducts(payload: TimeDealPayload) {
-  if (Array.isArray(payload)) return payload;
-  return payload.products ?? payload.items ?? payload.data ?? [];
+  const products = Array.isArray(payload)
+    ? payload
+    : payload.products ?? payload.items ?? payload.data ?? [];
+
+  return products.map((product) => {
+    const normalizedProduct = normalizeProductImage(product);
+    const discountRate = Number(product.discountRate || 0);
+    if (discountRate <= 0 || discountRate >= 100) return normalizedProduct;
+
+    return {
+      ...normalizedProduct,
+      discountPercent: discountRate,
+      salePrice:
+        Number(normalizedProduct.salePrice || 0) > 0
+          ? normalizedProduct.salePrice
+          : Math.round(
+              (Number(normalizedProduct.basePrice || 0) * (100 - discountRate)) /
+                100,
+            ),
+    };
+  });
 }
 
 export function readServerTimeMs(

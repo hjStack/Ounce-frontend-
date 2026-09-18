@@ -178,17 +178,20 @@ export function won(value?: number | null) {
 }
 
 export function getProductPrice(product: Product) {
-  return product.salePrice && product.salePrice > 0
-    ? product.salePrice
-    : product.basePrice;
+  const basePrice = Number(product.basePrice || 0);
+  const salePrice = Number(product.salePrice || 0);
+  if (salePrice > 0 && salePrice < basePrice) return salePrice;
+
+  const discountPercent = Number(product.discountPercent || 0);
+  if (discountPercent > 0 && discountPercent < 100) {
+    return Math.round((basePrice * (100 - discountPercent)) / 100);
+  }
+
+  return basePrice;
 }
 
 export function isDiscounted(product: Product) {
-  return (
-    Number(product.discountPercent || 0) > 0 &&
-    Number(product.salePrice || 0) > 0 &&
-    Number(product.salePrice || 0) < Number(product.basePrice || 0)
-  );
+  return getProductPrice(product) < Number(product.basePrice || 0);
 }
 
 export function stockState(product: Product) {

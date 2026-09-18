@@ -28,7 +28,7 @@ export interface CartItem {
     quantity: number;
 }
 
-export type CouponStatus = "AVAILABLE" | "USED" | "EXPIRED" | string;
+export type CouponStatus = "AVAILABLE" | "USED" | "EXPIRED" | "INACTIVE" | string;
 export type CouponDiscountType = "FIXED" | "PERCENT" | string;
 
 export interface Coupon {
@@ -52,6 +52,20 @@ export interface CouponValidation {
     finalAmount: number;
 }
 
+export interface PointHistory {
+    pointHistoryId?: number;
+    id?: number;
+    amount: number;
+    balance?: number | null;
+    balanceAfter?: number | null;
+    type?: string | null;
+    typeDescription?: string | null;
+    reason?: string | null;
+    description?: string | null;
+    createdAt?: string | null;
+    createdDate?: string | null;
+}
+
 export interface Category {
     key: string;
     slug?: string;
@@ -68,6 +82,7 @@ export interface Product {
     basePrice: number;
     salePrice?: number | null;
     discountPercent?: number | null;
+    discountRate?: number | string | null;
     subscriptionDiscountPercent?: number | null;
     description?: string | null;
     imageUrl?: string | null;
@@ -199,6 +214,8 @@ export interface AdminMember extends Member {
     created_at?: string;
     joinedAt?: string;
     updatedAt?: string | null;
+    deletedAt?: string | null;
+    deleted_at?: string | null;
     lastLoginAt?: string | null;
     lastLoginDate?: string | null;
     orderCount?: number;

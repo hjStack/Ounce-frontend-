@@ -7,8 +7,10 @@ const NAV = [
     { href: "/admin/timedeal", label: "미드나이트 관리", icon: "ri-moon-line" },
     { href: "/admin/orders", label: "주문 관리", icon: "ri-file-list-3-line" },
     { href: "/admin/members", label: "회원 관리", icon: "ri-group-line" },
+    { href: "/admin/points", label: "포인트 관리", icon: "ri-coin-line" },
     { href: "/admin/coupons", label: "쿠폰 관리", icon: "ri-coupon-3-line" },
-    { href: "/admin/qna", label: "문의 및 리뷰", icon: "ri-question-answer-line" },
+    { href: "/admin/qna", label: "문의 관리", icon: "ri-question-answer-line" },
+    { href: "/admin/reviews", label: "리뷰 관리", icon: "ri-star-line" },
 ];
 
 export default function AdminShell({ active, title, children }: { active: string; title: string; children: ReactNode }) {

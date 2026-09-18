@@ -1,0 +1,28 @@
+language: ko-KR
+
+reviews:
+  profile: chill
+  high_level_summary: true
+  review_status: true
+  review_progress: true
+  path_instructions:
+    - path: "app/**/*.{ts,tsx}"
+      instructions: |
+        Next.js App Router와 React 19 규칙을 기준으로 리뷰하세요.
+        클라이언트/서버 컴포넌트 경계, 데이터 fetching, 인증 및 권한 처리,
+        로딩·에러·빈 상태, 접근성과 TypeScript 타입 안전성을 중점적으로 확인하세요.
+    - path: "components/**/*.{ts,tsx}"
+      instructions: |
+        재사용 가능한 React 컴포넌트의 상태 관리, 접근성, 렌더링 성능,
+        props 타입 안전성과 사용자에게 노출되는 오류 처리를 중점적으로 확인하세요.
+    - path: "lib/**/*.ts"
+      instructions: |
+        API 호출, 인증 토큰·쿠키 처리, 예외 처리, 서버/클라이언트 실행 경계와
+        부작용을 중점적으로 확인하세요. 민감한 정보가 로그나 응답에 노출되지 않는지 확인하세요.
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+
+chat:
+  auto_reply: true

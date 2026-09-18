@@ -13,16 +13,40 @@ import {
   formatCouponDate,
   getCouponId,
 } from "../../lib/coupons";
+import { formatDate } from "../../lib/date";
 import { won } from "../../lib/products";
 import {
   forgetSignupBenefitToastSeen,
   markSignupBenefitWithdrawal,
   signupBenefitMemberKey,
 } from "../../lib/signup-benefits";
-import type { Coupon, Member, Order } from "../../types/api";
+import type { Coupon, Member, Order, PointHistory } from "../../types/api";
 import { apiFetch } from "@/lib/api";
 
 const WITHDRAW_TEXT = "ounce를 탈퇴합니다.";
+
+type PointHistoryResponse = {
+  content?: PointHistory[];
+  items?: PointHistory[];
+  data?: PointHistory[];
+  histories?: PointHistory[];
+  pointHistories?: PointHistory[];
+};
+
+function readPointHistory(data: unknown): PointHistory[] {
+  if (Array.isArray(data)) return data as PointHistory[];
+  if (!data || typeof data !== "object") return [];
+
+  const response = data as PointHistoryResponse;
+  return (
+    response.content ??
+    response.items ??
+    response.data ??
+    response.histories ??
+    response.pointHistories ??
+    []
+  );
+}
 
 export default function AccountClient() {
   const router = useRouter();
@@ -31,6 +55,7 @@ export default function AccountClient() {
   const [member, setMember] = useState<Member | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [pointHistory, setPointHistory] = useState<PointHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [withdrawText, setWithdrawText] = useState("");
@@ -53,14 +78,21 @@ export default function AccountClient() {
         const data = (await me.json()) as Member;
         if (!ignore) setMember(data);
 
-        const [orderRes, couponRes] = await Promise.all([
+        const [orderRes, couponRes, pointRes] = await Promise.all([
           apiFetch("/api/orders", { credentials: "include" }),
           apiFetch("/api/coupons/me", { credentials: "include" }),
+          apiFetch("/api/points/me/histories?page=0&size=20", {
+            credentials: "include",
+          }),
         ]);
         if (!ignore && orderRes.ok)
           setOrders((await orderRes.json()) as Order[]);
         if (!ignore && couponRes.ok)
           setCoupons((await couponRes.json()) as Coupon[]);
+        if (!ignore && pointRes.ok) {
+          const pointData: unknown = await pointRes.json();
+          setPointHistory(readPointHistory(pointData));
+        }
       } catch {
         if (!ignore) toast("계정 정보를 불러오지 못했습니다.", "error");
       } finally {
@@ -332,6 +364,55 @@ export default function AccountClient() {
                   <p className="mt-1 text-xs font-medium text-foreground-600">
                     새 쿠폰이 발급되면 이곳에 표시됩니다.
                   </p>
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section id="account-points" className="mt-10 scroll-mt-28">
+            <div className="mb-4 flex items-end justify-between gap-3">
+              <div>
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="h-px w-7 bg-primary-500" />
+                  <span className="text-xs font-bold text-primary-700">POINT HISTORY</span>
+                </div>
+                <h2 className="text-2xl font-black text-foreground-950">포인트 내역</h2>
+                <p className="mt-1 text-sm font-medium text-foreground-700">현재 보유 포인트 {pointLabel}</p>
+              </div>
+            </div>
+
+            <div className="overflow-hidden rounded-xl border border-background-200 bg-white shadow-sm">
+              {pointHistory.length === 0 ? (
+                <div className="px-6 py-12 text-center">
+                  <i className="ri-coin-line text-3xl text-foreground-300" />
+                  <p className="mt-3 text-sm font-bold text-foreground-700">포인트 내역이 없습니다.</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-background-100">
+                  {pointHistory.map((history, index) => {
+                    const amount = Number(history.amount || 0);
+                    const positive = amount >= 0;
+                    return (
+                      <div key={history.pointHistoryId ?? history.id ?? index} className="flex items-center justify-between gap-4 px-5 py-4">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-foreground-900">
+                            {history.description || history.typeDescription || history.reason || pointHistoryLabel(history.type)}
+                          </p>
+                          <p className="mt-1 text-xs text-foreground-500">
+                            {formatDate(history.createdAt || history.createdDate || undefined, true) || "-"}
+                          </p>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className={`text-sm font-black ${positive ? "text-primary-600" : "text-red-500"}`}>
+                            {positive ? "+" : ""}{amount.toLocaleString("ko-KR")}P
+                          </p>
+                          {(history.balanceAfter ?? history.balance) != null && (
+                            <p className="mt-1 text-xs text-foreground-500">잔액 {Number(history.balanceAfter ?? history.balance).toLocaleString("ko-KR")}P</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -637,6 +718,14 @@ function QuickLink({
       <i className={`${icon} text-foreground-600`} /> {label}
     </Link>
   );
+}
+
+function pointHistoryLabel(type?: string | null) {
+  if (type === "EARN" || type === "ACCUMULATE") return "포인트 적립";
+  if (type === "USE" || type === "SPEND") return "포인트 사용";
+  if (type === "REFUND") return "포인트 환급";
+  if (type === "REVOKE" || type === "REDEEM") return "포인트 회수";
+  return type || "포인트 변동";
 }
 
 function AccountCouponCard({ coupon }: { coupon: Coupon }) {

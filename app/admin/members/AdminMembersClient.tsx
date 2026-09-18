@@ -94,6 +94,19 @@ function joinedAt(member: AdminMember) {
   );
 }
 
+function withdrawnAt(member: AdminMember) {
+  const status = memberStatus(member).toUpperCase();
+  const inactive = ["INACTIVE", "WITHDRAWN", "DELETED", "SUSPENDED"].includes(
+    status,
+  );
+
+  if (!inactive) return "-";
+
+  return (
+    formatDate(member.deletedAt || member.deleted_at || undefined, true) || "-"
+  );
+}
+
 function orderCount(member: AdminMember) {
   return Number(member.totalOrderCount ?? member.orderCount ?? 0);
 }
@@ -343,7 +356,7 @@ export default function AdminMembersClient() {
                 <EmptyState />
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[920px] text-left text-sm">
+                  <table className="w-full min-w-[1040px] text-left text-sm">
                     <thead className="bg-gray-50 text-xs font-semibold text-gray-500">
                       <tr>
                         <th className="px-5 py-3">회원</th>
@@ -352,6 +365,7 @@ export default function AdminMembersClient() {
                         <th className="px-5 py-3">주문</th>
                         <th className="px-5 py-3">누적 결제</th>
                         <th className="px-5 py-3">가입일</th>
+                        <th className="px-5 py-3">탈퇴일</th>
                         <th className="px-5 py-3">상태</th>
                       </tr>
                     </thead>
@@ -402,6 +416,9 @@ export default function AdminMembersClient() {
                             </td>
                             <td className="px-5 py-3 text-gray-500">
                               {joinedAt(member)}
+                            </td>
+                            <td className="px-5 py-3 text-gray-500">
+                              {withdrawnAt(member)}
                             </td>
                             <td className="px-5 py-3">
                               <StatusBadge status={memberStatus(member)} />
@@ -550,6 +567,7 @@ function MemberDetail({
         />
         <DetailLine label="연락처" value={member.phone || "-"} />
         <DetailLine label="가입일" value={joinedAt(member)} />
+        <DetailLine label="탈퇴일" value={withdrawnAt(member)} />
         <DetailLine
           label="최근 로그인"
           value={
