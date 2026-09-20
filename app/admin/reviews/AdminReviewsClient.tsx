@@ -50,7 +50,7 @@ export default function AdminReviewsClient() {
       const response = await apiFetch(`/api/admin/reviews?${params.toString()}`, {
         credentials: "include",
       });
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401 || response.status === 403) {  // 권한 없음
         setForbidden(true);
         return;
       }
