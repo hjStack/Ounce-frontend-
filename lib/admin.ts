@@ -1,6 +1,5 @@
 import type { Member, RoleClaim } from "../types/api";
 
-const ADMIN_EMAILS = new Set(["hye_jun0209@icloud.com"]);
 
 function roleName(role: RoleClaim | undefined) {
     if (typeof role === "string") return role;
