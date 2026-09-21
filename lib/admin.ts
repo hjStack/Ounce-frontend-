@@ -19,7 +19,6 @@ export function hasAdminAccess(user: Member | null | undefined) {
 
     return (
         directRoles.some(isAdminRole) ||
-        roleClaims.some((role) => isAdminRole(roleName(role))) ||
-        ADMIN_EMAILS.has(user.email.toLowerCase())
+        roleClaims.some((role) => isAdminRole(roleName(role)))
     );
 }
