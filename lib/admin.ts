@@ -1,6 +1,5 @@
 import type { Member, RoleClaim } from "../types/api";
 
-const ADMIN_EMAILS = new Set(["hye_jun0209@icloud.com"]);
 
 function roleName(role: RoleClaim | undefined) {
     if (typeof role === "string") return role;
@@ -20,7 +19,6 @@ export function hasAdminAccess(user: Member | null | undefined) {
 
     return (
         directRoles.some(isAdminRole) ||
-        roleClaims.some((role) => isAdminRole(roleName(role))) ||
-        ADMIN_EMAILS.has(user.email.toLowerCase())
+        roleClaims.some((role) => isAdminRole(roleName(role)))
     );
 }

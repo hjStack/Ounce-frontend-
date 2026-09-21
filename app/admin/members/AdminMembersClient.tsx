@@ -12,7 +12,7 @@ const PAGE_SIZE = 20;
 
 const FILTERS = [
   { key: "ALL", label: "전체" },
-  { key: "ADMIN", label: "관리자" },
+  { key: "ROLE_ADMIN", label: "관리자" },
   { key: "MEMBER", label: "일반 회원" },
   { key: "INACTIVE", label: "비활성" },
 ];
@@ -66,11 +66,16 @@ function memberRoles(member: AdminMember) {
     ...(member.roles ?? []).map(roleValue),
   ]
     .filter(Boolean)
-    .map((role) => String(role).replace(/^ROLE_/, ""));
+    .map((role) => {
+      const normalized = String(role).trim().toUpperCase();
+      return normalized === "ADMIN" || normalized === "ROLE_ADMIN"
+        ? "ROLE_ADMIN"
+        : String(role);
+    });
 }
 
 function isAdmin(member: AdminMember) {
-  return memberRoles(member).some((role) => role.toUpperCase() === "ADMIN");
+  return memberRoles(member).some((role) => role.toUpperCase() === "ROLE_ADMIN");
 }
 
 function memberName(member: AdminMember) {
@@ -122,7 +127,7 @@ function spentAmount(member: AdminMember) {
 
 function roleLabel(member: AdminMember) {
   const roles = memberRoles(member);
-  if (roles.length === 0) return isAdmin(member) ? "ADMIN" : "MEMBER";
+  if (roles.length === 0) return isAdmin(member) ? "ROLE_ADMIN" : "MEMBER";
   return Array.from(new Set(roles)).join(", ");
 }
 
@@ -229,7 +234,7 @@ export default function AdminMembersClient() {
       const status = memberStatus(member).toUpperCase();
       const filterMatched =
         filter === "ALL" ||
-        (filter === "ADMIN" && admin) ||
+        (filter === "ROLE_ADMIN" && admin) ||
         (filter === "MEMBER" && !admin) ||
         (filter === "INACTIVE" &&
           ["INACTIVE", "WITHDRAWN", "DELETED", "SUSPENDED"].includes(status));
