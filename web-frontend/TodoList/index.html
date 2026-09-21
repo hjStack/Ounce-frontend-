@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="eng">
+<head>
+  <meta charset="UTF-8">
+  <title>todo-list</title>
+</head>
+<body>
+<link href="todo.css" rel="stylesheet">
+
+<div>
+  <div class="title">
+    <button class="pre" id="before">이전</button>
+    <!--    // 동적으로 날짜 나타냄-->
+<!--    <input type="month" id="start" name="start" min="2025-01"/>-->
+    <div class="current-date"></div>
+    <button class="after" id="after">이후</button>
+    <button class="today" id="today">오늘</button>
+  </div>
+
+  <div class="todo">
+    <!--    // 첫번째 할일-->
+    <div class="sch">
+      <div class="todo1">
+        <div class="num">1</div>
+        <div class="v-line"></div>
+        <div class="todo2">
+          <input type="text" placeholder="todo입력" id="todo1">
+          <button onclick="enroll()" id="enroll1">등록</button>
+          <button onclick="deleteAllTodos()">삭제</button>
+        </div>
+        <div class="v-line"></div>
+        <div id="embark" ></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="todo.js"></script>
+</body>
+</html>

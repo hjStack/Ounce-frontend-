@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>도서 주문 / 결제</title>
+    <style>
+      :root {
+        --color-primary: #007bff; /* 짙은 포레스트 블루 */
+        --color-accent: #e9c46a; /* 빈티지 골드/옐로 */
+        --color-background: #fcf8f5;
+        --color-dark-footer: #3e2723;
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+        --color-success: #28a745;
+        --color-danger: #dc3545;
+      }
+      /* ------------------------------------- */
+      /* 1. 기본 설정 및 초기화 (기존 코드 유지) */
+      /* ------------------------------------- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        color: var(--color-text-dark);
+        line-height: 1.6;
+        background-color: var(--color-background);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      a:hover {
+        color: var(--color-accent);
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+      }
+
+      input {
+        font-family: inherit;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 10px 20px;
+      }
+
+      .writing {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* ------------------------------------- */
+      /* 2. 헤더 스타일링 (기존 코드 유지) */
+      /* ------------------------------------- */
+
+      #header {
+        background-color: #ffffff;
+        border-bottom: 3px solid var(--color-primary);
+        padding: 5px 0; /* 간격 축소 유지 */
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      #header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        /* ✅ 수정: 이미지와 .brand를 Flex 아이템으로 만들어 나란히 배치 */
+        display: flex;
+        /* ✅ 수정: 이미지와 텍스트를 수직 중앙 정렬 */
+        align-items: center;
+        /* ✅ 추가: 이미지와 텍스트 사이의 간격 설정 */
+        gap: 10px;
+      }
+
+      .logo a {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--color-primary);
+        display: flex;
+        flex-direction: row;
+      }
+      .logo .brand {
+        font-size: 21px; /* 텍스트 크기 */
+        font-weight: 900;
+        color: #000080;
+        /* margin-top: 5px; 제거 (align-items: center로 수직 정렬하므로 불필요) */
+        /* display: flex; 제거 (brand 내부 요소가 아니므로 불필요) */
+        margin-top: 0; /* ✅ 수정: 불필요한 마진 제거 */
+        display: block; /* ✅ 수정: flex 해제 후 block으로 설정 */
+      }
+
+      .gnb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: none;
+      }
+
+      .gnb .search-box {
+        display: flex;
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        width: 360px;
+      }
+
+      .gnb .search-box input {
+        flex-grow: 1;
+        border: none;
+        padding: 8px 15px;
+        outline: none;
+      }
+
+      .gnb .search-box .search-btn {
+        padding: 8px 15px;
+        background-color: var(--color-primary);
+        color: white;
+        transition: background-color 0.2s ease;
+        border-radius: 0;
+        white-space: nowrap;
+      }
+
+      .gnb ul {
+        display: flex;
+        list-style: none;
+        margin: 5px 10px; /* 간격 축소 유지 */
+        gap: 20px;
+      }
+
+      .gnb ul li a {
+        font-weight: 500;
+        color: var(--color-text-dark);
+      }
+
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .user-menu .cart-link {
+        color: black;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 5px;
+      }
+
+      .user-menu .login-btn-top {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background-color: white;
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+      }
+      /* ------------------------------------- */
+      /* 3. 주문 페이지 레이아웃 및 스타일 */
+      /* ------------------------------------- */
+
+      #container {
+        flex-grow: 1;
+        padding: 40px 0;
+        background-color: #ffffff;
+      }
+
+      .order-wrap {
+        display: flex;
+        gap: 30px;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 20px;
+      }
+
+      .order-content {
+        flex: 2; /* 주문 정보 입력 영역이 더 넓게 */
+      }
+
+      .order-summary {
+        flex: 1; /* 결제 요약 영역 */
+        position: sticky; /* 스크롤 시 고정 */
+        top: 20px;
+        height: fit-content;
+        background-color: #f7f7f7;
+        padding: 25px;
+        border-radius: 8px;
+        border: 1px solid var(--color-border-light);
+      }
+
+      /* 섹션 공통 */
+      .section-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid var(--color-border);
+      }
+      .section-box {
+        background-color: #ffffff;
+        padding: 25px;
+        margin-bottom: 30px;
+        border: 1px solid var(--color-border-light);
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      }
+
+      /* 주문 상품 목록 */
+      .product-list {
+        list-style: none;
+        padding: 0;
+      }
+      .product-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid var(--color-border-light);
+      }
+      .product-item:last-child {
+        border-bottom: none;
+      }
+      .product-item img {
+        width: 60px;
+        height: 90px;
+        object-fit: cover;
+        margin-right: 15px;
+        border: 1px solid var(--color-border-light);
+      }
+      .product-details {
+        flex-grow: 1;
+      }
+      .product-details .name {
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+      .product-details .price-qty {
+        font-size: 14px;
+        color: var(--color-text-light);
+      }
+      .product-item .total-price {
+        font-weight: 700;
+        font-size: 16px;
+        color: var(--color-text-dark);
+      }
+
+      /* 폼 입력 그룹 */
+      .input-group {
+        margin-bottom: 15px;
+      }
+      .input-group label {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-text-dark);
+        margin-bottom: 8px;
+      }
+      .input-group input[type="text"],
+      .input-group input[type="email"],
+      .input-group input[type="tel"],
+      .input-group select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 15px;
+        transition: border-color 0.2s;
+      }
+      .input-group input:focus,
+      .input-group select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+      }
+
+      /* 주소 검색 버튼 */
+      .address-group {
+        display: flex;
+        gap: 10px;
+      }
+      .address-group input {
+        flex-grow: 1;
+      }
+      .address-group button {
+        padding: 12px 15px;
+        background-color: var(--color-text-light);
+        color: white;
+        border-radius: 4px;
+        white-space: nowrap;
+        transition: background-color 0.2s;
+      }
+      .address-group button:hover {
+        background-color: #555;
+      }
+      .extra-address {
+        margin-top: 10px;
+      }
+
+      /* 결제 방식 선택 */
+      .payment-methods {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .payment-methods label {
+        flex-grow: 1;
+        cursor: pointer;
+      }
+      .payment-methods input[type="radio"] {
+        display: none;
+      }
+      .payment-methods span {
+        display: block;
+        padding: 12px;
+        border: 2px solid var(--color-border);
+        border-radius: 4px;
+        text-align: center;
+        font-weight: 500;
+        transition: border-color 0.2s, background-color 0.2s;
+      }
+      .payment-methods input[type="radio"]:checked + span {
+        border-color: var(--color-primary);
+        background-color: #e6f0ff;
+        color: var(--color-primary);
+        font-weight: 700;
+      }
+
+      /* 결제 요약 (Summary) */
+      .summary-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--color-border);
+        font-size: 15px;
+      }
+      .summary-item:last-of-type {
+        border-bottom: none;
+        margin-bottom: 15px;
+      }
+
+      .total-payment {
+        padding-top: 15px;
+        margin-top: 15px;
+        border-top: 2px solid var(--color-primary);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .total-payment .price {
+        color: var(--color-danger);
+        font-size: 24px;
+      }
+
+      .order-agree {
+        margin-top: 20px;
+        font-size: 13px;
+        text-align: center;
+        color: var(--color-text-light);
+      }
+      .order-btn {
+        width: 100%;
+        padding: 15px;
+        background-color: var(--color-primary);
+        color: white;
+        font-size: 18px;
+        font-weight: 700;
+        border-radius: 4px;
+        margin-top: 15px;
+        transition: background-color 0.2s;
+      }
+      .order-btn:hover {
+        background-color: #0056b3;
+      }
+
+      /* ------------------------------------- */
+      /* 4. 푸터 스타일링 (기존 코드 유지) */
+      /* ------------------------------------- */
+      #footer {
+        background-color: var(--color-dark-footer);
+        color: #a0a0a0;
+        padding: 40px 0;
+        font-size: 13px;
+      }
+
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .footer-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .footer-info .copyright,
+      .footer-info .customer-center {
+        flex: 1;
+        line-height: 1.8;
+      }
+
+      .footer-info .copyright strong {
+        color: #c0c0c0;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header">
+      <div class="container">
+        <h2 class="logo">
+          <img src="../img/high-five.png" alt="logo" width="100" height="100" />
+          <div class="brand">HIGH-FIVE-BOOKS</div>
+        </h2>
+
+        <nav class="gnb">
+          <div class="search-box">
+            <input type="text" placeholder="검색어를 입력하세요" />
+            <button class="search-btn">검색</button>
+          </div>
+
+          <!-- <ul class="writing">
+            <li><a href="">베스트 셀러</a></li>
+            <li><a href="./">추천도서</a></li>
+            <li><a href="./">국내 도서</a></li>
+          </ul> -->
+        </nav>
+
+        <div class="user-menu">
+          <a href="#" class="cart-link" title="장바구니로 이동">마이페이지 </a>
+          <a href="#" class="cart-link" title="장바구니로 이동"> 장바구니 </a>
+          <button type="button" class="login-btn-top">로그인</button>
+        </div>
+      </div>
+    </header>
+    <main id="container">
+      <form class="order-form" onsubmit="return false;">
+        <div class="order-wrap">
+          <div class="order-content">
+            <h1>도서 주문 / 결제</h1>
+            <hr
+              style="
+                margin-top: 10px;
+                border-color: var(--color-primary);
+                margin-bottom: 30px;
+              "
+            />
+
+            <div class="section-box">
+              <h2 class="section-title">주문 상품 정보</h2>
+              <ul class="product-list">
+                <li class="product-item">
+                  <img src="book_cover_example.jpg" alt="도서 표지" />
+                  <div class="product-details">
+                    <div class="name">클린 코드 (Clean Code)</div>
+                    <div class="price-qty">15,000원 x 1권</div>
+                  </div>
+                  <div class="total-price">15,000원</div>
+                </li>
+                <li class="product-item">
+                  <img src="book_cover_example2.jpg" alt="도서 표지" />
+                  <div class="product-details">
+                    <div class="name">객체지향의 사실과 오해</div>
+                    <div class="price-qty">22,000원 x 2권</div>
+                  </div>
+                  <div class="total-price">44,000원</div>
+                </li>
+              </ul>
+            </div>
+
+            <div class="section-box">
+              <h2 class="section-title">주문자 정보</h2>
+              <div class="input-group">
+                <label for="ordererName">이름</label>
+                <input type="text" id="ordererName" value="홍길동" required />
+              </div>
+              <div class="input-group">
+                <label for="ordererEmail">이메일</label>
+                <input
+                  type="email"
+                  id="ordererEmail"
+                  value="user@example.com"
+                  required
+                />
+              </div>
+              <div class="input-group">
+                <label for="ordererPhone">연락처</label>
+                <input
+                  type="tel"
+                  id="ordererPhone"
+                  value="010-1234-5678"
+                  required
+                />
+              </div>
+            </div>
+
+            <div class="section-box">
+              <h2 class="section-title">배송지 정보</h2>
+              <div class="input-group">
+                <label for="recipientName">수령인</label>
+                <input type="text" id="recipientName" required />
+              </div>
+              <div class="input-group">
+                <label for="zipCode">우편번호</label>
+                <div class="address-group">
+                  <input
+                    type="text"
+                    id="zipCode"
+                    placeholder="우편번호"
+                    readonly
+                    required
+                  />
+                  <button type="button">주소 검색</button>
+                </div>
+              </div>
+              <div class="input-group">
+                <label for="addressMain">주소</label>
+                <input
+                  type="text"
+                  id="addressMain"
+                  placeholder="기본 주소"
+                  readonly
+                  required
+                />
+              </div>
+              <div class="input-group extra-address">
+                <label for="addressDetail">상세 주소</label>
+                <input
+                  type="text"
+                  id="addressDetail"
+                  placeholder="동/호수, 건물명 등 상세 주소"
+                  required
+                />
+              </div>
+              <div class="input-group">
+                <label for="shippingMemo">배송 요청 사항 (선택)</label>
+                <input
+                  type="text"
+                  id="shippingMemo"
+                  placeholder="예: 문 앞에 놓아주세요."
+                />
+              </div>
+            </div>
+
+            <div class="section-box">
+              <h2 class="section-title">결제 수단</h2>
+              <div class="payment-methods">
+                <label>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="card"
+                    checked
+                  />
+                  <span>신용/체크카드</span>
+                </label>
+                <label>
+                  <input type="radio" name="paymentMethod" value="bank" />
+                  <span>무통장입금</span>
+                </label>
+                <label>
+                  <input type="radio" name="paymentMethod" value="phone" />
+                  <span>휴대폰 결제</span>
+                </label>
+                <label>
+                  <input type="radio" name="paymentMethod" value="naverpay" />
+                  <span>네이버페이</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-summary">
+            <h2 style="margin-bottom: 25px; font-size: 22px">최종 결제 금액</h2>
+
+            <div class="summary-item">
+              <span>총 상품 금액</span>
+              <strong>59,000원</strong>
+            </div>
+
+            <div class="summary-item">
+              <span>배송비</span>
+              <strong>3,000원</strong>
+            </div>
+
+            <div
+              class="summary-item"
+              style="color: var(--color-danger); font-weight: 600"
+            >
+              <span>할인 금액 (쿠폰/포인트)</span>
+              <strong>- 5,000원</strong>
+            </div>
+
+            <div class="total-payment">
+              <span>총 결제 금액</span>
+              <span class="price">57,000원</span>
+            </div>
+
+            <div class="order-agree">
+              <input type="checkbox" id="agreeTerms" required />
+              <label for="agreeTerms"
+                >주문할 상품/금액/약관을 모두 확인하였습니다.</label
+              >
+            </div>
+
+            <button type="submit" class="order-btn">57,000원 결제하기</button>
+          </div>
+        </div>
+      </form>
+    </main>
+    <footer id="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#"><strong>개인정보처리방침</strong></a>
+          <a href="#">관리자</a>
+        </div>
+
+        <div class="footer-info">
+          <div class="copyright">
+            <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+            통신판매업신고 2024-광주동구-01211 | 이메일: marco@nhn.com<br />
+            호스팅 제공자 NHN24 © NHN24. All Rights Reserved.
+          </div>
+          <div class="customer-center">
+            <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+            광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+            Fax 062-1234-5678
+          </div>
+        </div>
+      </div>
+    </footer>
+    <script>
+      // 1. 헤더의 로그인 버튼 요소를 찾습니다.
+      const loginButton = document.querySelector(".login-btn-top");
+
+      // 2. 버튼이 존재하면 클릭 이벤트를 연결합니다.
+      if (loginButton) {
+        loginButton.addEventListener("click", function () {
+          // 3. 'login.html'로 페이지를 이동시킵니다.
+          window.location.href = "login.html";
+        });
+      }
+
+      // 주소 검색 버튼 클릭 시 동작 (실제 구현 필요)
+      const addressSearchBtn = document.querySelector(".address-group button");
+      if (addressSearchBtn) {
+        addressSearchBtn.addEventListener("click", () => {
+          alert("주소 검색 기능이 호출되었습니다. (실제 구현 필요)");
+        });
+      }
+    </script>
+  </body>
+</html>

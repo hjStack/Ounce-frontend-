@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HIGH-FIVE 도서 | 장바구니</title>
+    <style>
+      :root {
+        --color-primary: #007bff;
+        --color-accent: #e9c46a;
+        --color-background: #fcf8f5;
+        --color-dark-footer: #3e2723;
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        color: var(--color-text-dark);
+        line-height: 1.6;
+        background: var(--color-background);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 12px 20px;
+      }
+
+      /* ===== 헤더(메인과 동일 규격) ===== */
+      #header {
+        background: #fff;
+        border-bottom: 3px solid var(--color-primary);
+        padding: 12px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      #header .container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+      }
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080;
+        margin-top: 5px;
+      }
+      .gnb {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .search-box {
+        display: flex;
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        width: 520px;
+        max-width: 100%;
+      }
+      .search-box input {
+        flex: 1;
+        border: 0;
+        padding: 10px 14px;
+        outline: none;
+      }
+      .search-box button {
+        background: var(--color-primary);
+        color: #fff;
+        padding: 10px 16px;
+        border: none;
+      }
+      .menu-row {
+        display: flex;
+        gap: 18px;
+        margin-top: 8px;
+        list-style: none;
+      }
+      .menu-row a {
+        color: #333;
+        font-weight: 600;
+      }
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+      }
+      .user-menu .user-link {
+        display: inline-block;
+        font-weight: 700;
+        color: #333;
+        padding: 6px 8px;
+      }
+      .user-menu .user-link:hover {
+        color: var(--color-primary);
+      }
+      .user-menu .user-link.pill {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+      }
+      .user-menu .user-link.pill:hover {
+        background: var(--color-accent);
+        color: #fff;
+      }
+
+      /* ===== 장바구니 ===== */
+      main {
+        flex: 1;
+        padding: 22px 0;
+      }
+      .cart-wrap {
+        display: grid;
+        grid-template-columns: 1.7fr 0.9fr;
+        gap: 20px;
+      }
+      .panel {
+        background: #fff;
+        border: 1px solid var(--color-border-light);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .panel .hd {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--color-border-light);
+      }
+      .panel .hd h2 {
+        font-size: 18px;
+      }
+      .cart-list {
+        display: flex;
+        flex-direction: column;
+      }
+      .item {
+        display: grid;
+        grid-template-columns: 36px 96px 1fr 140px 120px 36px;
+        gap: 12px;
+        align-items: center;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--color-border-light);
+      }
+      .item:last-child {
+        border-bottom: 0;
+      }
+      .thumb {
+        width: 96px;
+        height: 128px;
+        background: #f2f2f2;
+        border-radius: 6px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-weight: 700;
+      }
+      .item-title {
+        font-weight: 700;
+      }
+      .item-meta {
+        font-size: 13px;
+        color: var(--color-text-light);
+      }
+      .qty {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .qty button {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--color-border);
+        background: #fff;
+        border-radius: 6px;
+      }
+      .qty input {
+        width: 42px;
+        text-align: center;
+        border: 1px solid var(--color-border);
+        padding: 4px 6px;
+        border-radius: 6px;
+      }
+      .price {
+        font-weight: 900;
+        text-align: right;
+      }
+      .del {
+        background: none;
+        border: 0;
+        color: #888;
+        font-size: 18px;
+      }
+      .subrow {
+        grid-column: 3 / -2;
+        font-size: 13px;
+        color: var(--color-text-light);
+        margin-top: -6px;
+      }
+
+      .cart-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        border-top: 1px solid var(--color-border-light);
+        background: #fafafa;
+      }
+      .btn {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        border: 1px solid var(--color-border);
+        background: #fff;
+      }
+      .btn.primary {
+        background: var(--color-primary);
+        color: #fff;
+        border-color: var(--color-primary);
+      }
+
+      /* 요약 패널 */
+      .sum {
+        padding: 16px;
+      }
+      .sum-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px dashed var(--color-border);
+      }
+      .sum-row:last-child {
+        border-bottom: 0;
+      }
+      .sum .big {
+        font-size: 20px;
+        font-weight: 900;
+        color: #111;
+      }
+      .sum .muted {
+        color: var(--color-text-light);
+      }
+      .action {
+        padding: 16px;
+      }
+      .action .order-btn {
+        width: 100%;
+        padding: 14px;
+        border: 0;
+        border-radius: 10px;
+        background: var(--color-accent);
+        color: #fff;
+        font-weight: 900;
+        font-size: 16px;
+      }
+      .action .order-btn:hover {
+        filter: brightness(0.95);
+      }
+
+      .empty {
+        padding: 40px;
+        text-align: center;
+        color: var(--color-text-light);
+      }
+
+      .main_con {
+        background-color: #ffffff;
+      }
+
+      /* 푸터 */
+      #footer {
+        background: var(--color-dark-footer);
+        color: #a0a0a0;
+        padding: 34px 0;
+        font-size: 13px;
+        margin-top: 32px;
+      }
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: #fff;
+      }
+      .footer-info {
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+      }
+      .footer-info > div {
+        flex: 1;
+        line-height: 1.8;
+      }
+      .footer-info strong {
+        color: #c0c0c0;
+      }
+
+      @media (max-width: 980px) {
+        .cart-wrap {
+          grid-template-columns: 1fr;
+        }
+        .item {
+          grid-template-columns: 28px 80px 1fr 120px 100px 32px;
+        }
+        .thumb {
+          width: 80px;
+          height: 110px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- ===== 헤더 (메인과 동일 포맷) ===== -->
+    <header id="header">
+      <div class="container">
+        <div class="logo">
+          <img src="../img/high-five.png" alt="logo" width="100" height="100" />
+          <div class="brand">HIGH-FIVE BOOKS</div>
+        </div>
+        <nav class="gnb" aria-label="주요 메뉴">
+          <div class="search-box" role="search">
+            <input
+              type="search"
+              placeholder="도서명, 저자, ISBN, 태그 검색"
+              aria-label="통합 검색"
+            />
+            <button class="search-btn">검색</button>
+          </div>
+
+        </nav>
+        <div class="user-menu">
+          <a class="user-link" href="mypage.html">마이페이지</a>
+          <a class="user-link" href="./cart.html">장바구니</a>
+          <a class="user-link pill" href="./login.html">로그인</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- ===== 장바구니 ===== -->
+    <main class="main_con">
+      <div class="container">
+        <h1 style="font-size: 22px; margin: 6px 0 14px">장바구니</h1>
+
+        <div class="cart-wrap">
+          <!-- 왼쪽: 품목 리스트 -->
+          <section class="panel" aria-label="장바구니 목록">
+            <div class="hd">
+              <div>
+                <label><input type="checkbox" id="chkAll" /> 전체선택</label>
+              </div>
+              <button class="btn" id="btnRemoveSelected">선택삭제</button>
+            </div>
+
+            <div class="cart-list" id="cartList">
+              <!-- 샘플 아이템 -->
+              <article class="item" data-id="1" data-price="20000">
+                <input type="checkbox" class="chk" />
+                <div class="thumb">
+                  <img
+                    src="./img/trend2026.jpg"
+                    alt="트렌드 코리아 2026 표지"
+                    onerror="this.parentNode.textContent='BOOK'"
+                  />
+                </div>
+                <div>
+                  <div class="item-title">트렌드 코리아 2026</div>
+                  <div class="item-meta">김난도 외 | 2025.09 | 미래의창</div>
+                  <div class="subrow">포장여부: 예</div>
+                </div>
+                <div class="qty">
+                  <button class="dec">-</button>
+                  <input type="number" class="num" value="1" min="1" />
+                  <button class="inc">+</button>
+                </div>
+                <div class="price"><span class="p">20,000</span>원</div>
+                <button class="del" title="삭제">×</button>
+              </article>
+
+              <article class="item" data-id="2" data-price="19000">
+                <input type="checkbox" class="chk" />
+                <div class="thumb">
+                  <img
+                    src="./img/quantumworld.jpg"
+                    alt="처음 만나는 양자의 세계 표지"
+                    onerror="this.parentNode.textContent='BOOK'"
+                  />
+                </div>
+                <div>
+                  <div class="item-title">처음 만나는 양자의 세계</div>
+                  <div class="item-meta">채은미 | 2025.09 | 사이언스북스</div>
+                  <div class="subrow">옵션: 기본</div>
+                </div>
+                <div class="qty">
+                  <button class="dec">-</button>
+                  <input type="number" class="num" value="1" min="1" />
+                  <button class="inc">+</button>
+                </div>
+                <div class="price"><span class="p">19,000</span>원</div>
+                <button class="del" title="삭제">×</button>
+              </article>
+
+              <!-- 빈 상태 표현용 -->
+              <div class="empty" id="emptyState" style="display: none">
+                장바구니가 비어 있습니다.
+              </div>
+            </div>
+
+            <div class="cart-toolbar">
+              <div>
+                <label
+                  ><input type="checkbox" id="chkAllBottom" /> 전체선택</label
+                >
+              </div>
+              <div>
+                <button class="btn" id="btnClear">전체비우기</button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 오른쪽: 주문 요약 -->
+          <aside class="panel" aria-label="주문 요약">
+            <div class="hd"><h2>주문 요약</h2></div>
+            <div class="sum">
+              <div class="sum-row">
+                <span class="muted">상품금액</span
+                ><span id="sumProducts">0원</span>
+              </div>
+              <div class="sum-row">
+                <span class="muted">배송비</span
+                ><span id="sumShipping">0원</span>
+              </div>
+              <div class="sum-row">
+                <span class="big">결제예정금액</span
+                ><span class="big" id="sumTotal">0원</span>
+              </div>
+            </div>
+            <div class="action">
+              <button class="order-btn" id="btnOrder">주문하기</button>
+            </div>
+            <div
+              style="
+                padding: 0 16px 16px;
+                font-size: 13px;
+                color: var(--color-text-light);
+              "
+            >
+              2만 원 이상 무료배송 (기본 3,000원)
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
+
+    <!-- ===== 푸터 ===== -->
+    <footer id="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#"><strong>개인정보처리방침</strong></a>
+          <a href="#">고객센터</a>
+        </div>
+        <div class="footer-info">
+          <div>
+            <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+            통신판매업신고 2024-광주동구-01211 | 이메일: help@highfive.com<br />
+            호스팅 제공자 NHN24 © HIGH-FIVE BOOKS. All Rights Reserved.
+          </div>
+          <div>
+            <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+            광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+            Fax 062-1234-5678
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // 포맷터
+      const fmt = (n) => n.toLocaleString("ko-KR");
+
+      const listEl = document.getElementById("cartList");
+      const emptyEl = document.getElementById("emptyState");
+      const sumProducts = document.getElementById("sumProducts");
+      const sumShipping = document.getElementById("sumShipping");
+      const sumTotal = document.getElementById("sumTotal");
+      const chkAllTop = document.getElementById("chkAll");
+      const chkAllBottom = document.getElementById("chkAllBottom");
+
+      function updateTotals() {
+        const items = [...listEl.querySelectorAll(".item")];
+        const selected = items.filter((it) => it.querySelector(".chk").checked);
+        const productSum = selected.reduce((acc, it) => {
+          const price = Number(it.dataset.price);
+          const qty = Number(it.querySelector(".num").value || 1);
+          return acc + price * qty;
+        }, 0);
+        const shipping = productSum > 0 && productSum < 20000 ? 3000 : 0;
+        sumProducts.textContent = fmt(productSum) + "원";
+        sumShipping.textContent = fmt(shipping) + "원";
+        sumTotal.textContent = fmt(productSum + shipping) + "원";
+
+        // 빈 상태
+        const hasItem = items.length > 0;
+        emptyEl.style.display = hasItem ? "none" : "block";
+
+        // 개별 금액 표시 갱신
+        items.forEach((it) => {
+          const price = Number(it.dataset.price);
+          const qty = Number(it.querySelector(".num").value || 1);
+          it.querySelector(".p").textContent = fmt(price * qty);
+        });
+
+        // 전체선택 체크상태 동기화
+        const checks = items.map((it) => it.querySelector(".chk").checked);
+        const allChecked = checks.length > 0 && checks.every(Boolean);
+        chkAllTop.checked = allChecked;
+        chkAllBottom.checked = allChecked;
+      }
+
+      // 수량 증감/삭제/체크 이벤트
+      listEl.addEventListener("click", (e) => {
+        const it = e.target.closest(".item");
+        if (!it) return;
+        if (e.target.classList.contains("inc")) {
+          const n = it.querySelector(".num");
+          n.value = Number(n.value || 1) + 1;
+          updateTotals();
+        }
+        if (e.target.classList.contains("dec")) {
+          const n = it.querySelector(".num");
+          n.value = Math.max(1, Number(n.value || 1) - 1);
+          updateTotals();
+        }
+        if (e.target.classList.contains("del")) {
+          it.remove();
+          updateTotals();
+        }
+      });
+      listEl.addEventListener("change", (e) => {
+        if (
+          e.target.classList.contains("num") ||
+          e.target.classList.contains("chk")
+        ) {
+          updateTotals();
+        }
+      });
+
+      // 전체선택/선택삭제/전체비우기
+      function setAll(checked) {
+        listEl
+          .querySelectorAll(".item .chk")
+          .forEach((ch) => (ch.checked = checked));
+        updateTotals();
+      }
+      chkAllTop.addEventListener("change", (e) => setAll(e.target.checked));
+      chkAllBottom.addEventListener("change", (e) => setAll(e.target.checked));
+
+      document
+        .getElementById("btnRemoveSelected")
+        .addEventListener("click", () => {
+          [...listEl.querySelectorAll(".item")].forEach((it) => {
+            if (it.querySelector(".chk").checked) it.remove();
+          });
+          updateTotals();
+        });
+      document.getElementById("btnClear").addEventListener("click", () => {
+        [...listEl.querySelectorAll(".item")].forEach((it) => it.remove());
+        updateTotals();
+      });
+
+      document.getElementById("btnOrder").addEventListener("click", () => {
+        if (listEl.querySelectorAll(".item").length === 0) {
+          alert("장바구니가 비어 있습니다.");
+          return;
+        }
+        alert("주문서로 이동합니다. (연동 필요)");
+        // location.href = '/order.html';
+      });
+
+      // 최초 계산
+      updateTotals();
+    </script>
+  </body>
+</html>

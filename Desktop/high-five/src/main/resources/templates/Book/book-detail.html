@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Booktown - 도서 상세</title>
+    <style>
+      :root {
+        --color-primary: #007bff; /* 짙은 포레스트 블루 */
+        --color-accent: #e9c46a; /* 빈티지 골드/옐로 */
+        --color-dark-footer: #3e2723;
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+      }
+      /* ------------------------------------- */
+      /* 1. 기본 설정 및 초기화 */
+      /* ------------------------------------- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        color: var(--color-text-dark);
+        line-height: 1.6;
+        background-color: var(--color-background); /* 베이지 배경 */
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      a:hover {
+        color: var(--color-accent); /* 호버 시 따뜻한 코랄 */
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+      }
+
+      input {
+        font-family: inherit;
+      }
+
+      /* 레이아웃 편의를 위한 .container 클래스 */
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 10px 20px;
+      }
+
+      .writing {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      #header {
+        border-bottom: 3px solid var(--color-primary); /* 딥 블루 라인 */
+        padding: 1px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      #header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo a {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--color-primary);
+        display: flex;
+        flex-direction: row;
+      }
+
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080;
+        margin-top: 5px;
+      }
+
+      .gnb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: none;
+        border-top: 10px;
+      }
+
+      /* 검색창 */
+      .gnb .search-box {
+        display: flex;
+        /* 검색 버튼을 입력창에 딱 붙이기 위해 테두리를 바깥으로 뺍니다. */
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-right: 0;
+        width: 360px; /* 검색창 너비 조정 */
+      }
+
+      .gnb .search-box input {
+        flex-grow: 1;
+        border: none;
+        padding: 8px 15px;
+        outline: none;
+      }
+
+      .gnb .search-box .search-btn {
+        padding: 8px 15px;
+        background-color: var(--color-primary);
+        color: white;
+        transition: background-color 0.2s ease;
+        border-radius: 0;
+        white-space: nowrap; /* "검색" 텍스트가 줄바꿈되지 않도록 */
+      }
+
+      .gnb .search-box .search-btn:hover {
+        background-color: #0056b3; /* 더 진한 블루 */
+      }
+
+      /* GNB 메뉴 */
+      .gnb ul {
+        display: flex;
+        list-style: none;
+        margin: 10px 10px;
+        gap: 20px;
+      }
+
+      .gnb ul li a {
+        font-weight: 500;
+        color: var(--color-text-dark);
+      }
+
+      /* 헤더 유저 메뉴 */
+      .user-menu {
+        display: flex; /* 장바구니와 로그인 버튼을 가로로 정렬 */
+        align-items: center;
+        gap: 15px; /* 버튼과 아이콘 사이 간격 */
+      }
+
+      /* 장바구니 아이콘 스타일 추가 */
+      .user-menu .cart-link {
+        color: black;
+        font-size: 16px;
+        font-weight: 700;
+        /* 유니코드나 아이콘 폰트 사용 시 패딩으로 크기 조정 */
+        padding: 5px;
+      }
+
+      .user-menu .login-btn-top {
+        border: 2px solid var(--color-accent); /* 코랄 테두리 */
+        color: var(--color-accent);
+        background-color: white;
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+      }
+
+      .user-menu .login-btn-top:hover {
+        background-color: var(--color-accent);
+        color: white;
+      }
+
+      /* 레이아웃 편의를 위한 .container 클래스 (기존 코드와 동일) */
+      .container2 {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 10px 20px;
+      }
+
+      #header {
+        border-bottom: 3px solid var(--color-primary);
+        padding: 1px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      #header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo {
+        /* a 태그가 h2를 감싸지 않으므로 h2에 직접 적용 */
+        display: flex;
+        align-items: center; /* 이미지와 텍스트를 나란히, 세로 중앙 정렬 */
+        /* 기존 .logo a의 스타일을 .logo로 이동 */
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--color-primary);
+      }
+
+      .logo a {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--color-primary);
+        display: flex;
+        flex-direction: row;
+      }
+
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080; /* 기존 코드에서는 var(--color-primary)였으나 명시적으로 수정된 부분 유지 */
+        margin: 10px;
+      }
+
+      .gnb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: none;
+        border-top: 10px;
+
+        margin-left: 50px;
+      }
+
+      /* 검색창 */
+      .gnb .search-box {
+        display: flex;
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-right: 0;
+        width: 360px;
+      }
+
+      .gnb .search-box input {
+        flex-grow: 1;
+        border: none;
+        padding: 8px 15px;
+        outline: none;
+      }
+
+      .gnb .search-box .search-btn {
+        padding: 8px 15px;
+        background-color: var(--color-primary);
+        color: white;
+        transition: background-color 0.2s ease;
+        border-radius: 0;
+        white-space: nowrap;
+      }
+
+      .gnb .search-box .search-btn:hover {
+        background-color: #0056b3;
+      }
+
+      /* GNB 메뉴 */
+      .gnb ul {
+        display: flex;
+        list-style: none;
+        margin: 10px 10px;
+        gap: 20px;
+      }
+
+      .gnb ul li a {
+        font-weight: 500;
+        color: var(--color-text-dark);
+      }
+
+      /* 헤더 유저 메뉴 */
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      /* 장바구니 아이콘 스타일 추가 */
+      .user-menu .cart-link {
+        color: black;
+        font-size: 16px;
+        font-weight: 700;
+        padding: 5px;
+      }
+
+      .user-menu .login-btn-top {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background-color: white;
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+      }
+
+      .user-menu .login-btn-top:hover {
+        background-color: var(--color-accent);
+        color: white;
+      }
+
+      /* ------------------------------------- */
+      /* 2. 도서 상세 페이지 전용 스타일 */
+      /* ------------------------------------- */
+      .container2 {
+        max-width: 1000px; /* 상세페이지는 조금 더 넓게 */
+        margin: 30px auto;
+        padding: 20px;
+        flex-grow: 1; /* 메인 콘텐츠 영역이 남은 공간을 채우도록 */
+      }
+
+      /* 상세 정보 섹션 */
+      .book-detail-main {
+        display: flex;
+        gap: 40px;
+        background-color: white;
+        padding: 30px;
+        border-radius: 12px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 30px;
+      }
+
+      .book-image {
+        flex-shrink: 0;
+        width: 300px;
+        border: 1px solid var(--color-border-light);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .book-image img {
+        width: 100%;
+        height: auto;
+        display: block;
+        object-fit: contain;
+      }
+
+      .book-info {
+        flex-grow: 1;
+      }
+
+      .book-info h1 {
+        font-size: 32px;
+        font-weight: 800;
+        color: var(--color-text-dark);
+        margin-bottom: 5px;
+        line-height: 1.3;
+      }
+
+      .book-info .author-publisher {
+        font-size: 16px;
+        color: var(--color-text-light);
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--color-border-light);
+        padding-bottom: 15px;
+      }
+      .book-info .author-publisher a {
+        font-weight: 600;
+      }
+
+      /* 가격 정보 */
+      .price-section {
+        margin-bottom: 30px;
+        padding: 15px 0;
+      }
+      .price-section .original-price {
+        color: var(--color-text-light);
+        text-decoration: line-through;
+        font-size: 18px;
+        margin-bottom: 5px;
+      }
+      .price-section .discount-price {
+        font-size: 36px;
+        font-weight: 800;
+        color: #c0392b; /* 진한 빨간색으로 할인 강조 */
+        display: flex;
+        align-items: flex-end;
+      }
+      .price-section .discount-rate {
+        font-size: 20px;
+        color: #c0392b;
+        margin-right: 15px;
+        font-weight: 600;
+      }
+      .price-section .final-price {
+        font-size: 22px;
+        color: var(--color-text-dark);
+        font-weight: 700;
+        margin-left: 10px;
+      }
+
+      /* 구매 버튼 영역 */
+      .purchase-actions {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .purchase-actions .btn-primary,
+      .purchase-actions .btn-secondary {
+        padding: 15px 30px;
+        border-radius: 8px;
+        font-size: 18px;
+        font-weight: 700;
+        transition: background-color 0.2s ease;
+      }
+
+      .purchase-actions .btn-primary {
+        flex-grow: 2;
+        background-color: var(--color-primary);
+        color: white;
+      }
+      .purchase-actions .btn-primary:hover {
+        background-color: #0056b3;
+      }
+
+      .purchase-actions .btn-secondary {
+        flex-grow: 1;
+        background-color: var(--color-accent); /* 찜 버튼은 포인트 컬러로 */
+        color: white;
+      }
+      .purchase-actions .btn-secondary:hover {
+        background-color: #d1b15d;
+      }
+
+      /* 도서 정보 요약 테이블 */
+      .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 15px;
+      }
+      .summary-table tr {
+        border-bottom: 1px dashed var(--color-border-light);
+      }
+      .summary-table th,
+      .summary-table td {
+        padding: 12px 0;
+        text-align: left;
+      }
+      .summary-table th {
+        width: 120px;
+        font-weight: 500;
+        color: var(--color-text-light);
+      }
+      .summary-table td {
+        font-weight: 600;
+        color: var(--color-text-dark);
+      }
+
+      /* 탭 네비게이션 (기존 마이페이지 스타일 활용) */
+      .book-detail-tabs {
+        display: flex;
+        gap: 0px;
+        margin-bottom: 25px;
+        border-bottom: 1px solid var(--color-border);
+      }
+
+      .book-detail-tabs button {
+        background: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--color-text-light);
+        border-bottom: 3px solid transparent;
+        transition: color 0.2s, border-bottom 0.2s;
+      }
+
+      .book-detail-tabs button.active {
+        color: var(--color-primary);
+        font-weight: 700;
+        border-bottom: 3px solid var(--color-primary);
+      }
+
+      /* 탭 콘텐츠 */
+      .detail-tab-content {
+        display: none;
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        border: 1px solid var(--color-border-light);
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+        margin-bottom: 20px;
+      }
+      .detail-tab-content.active {
+        display: block;
+      }
+
+      /* 푸터 스타일 추가 (마이페이지에는 없었지만, 전체 레이아웃 완성을 위해) */
+      #footer {
+        margin-top: auto; /* 본문 내용이 짧아도 항상 하단에 위치 */
+        background-color: var(--color-dark-footer);
+        color: #fff8e1; /* 따뜻한 아이보리 텍스트 */
+        padding: 30px 0;
+        font-size: 14px;
+      }
+
+      #footer .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .footer-section {
+        flex-basis: 30%;
+      }
+
+      .footer-section h4 {
+        font-size: 18px;
+        margin-bottom: 15px;
+        color: var(--color-accent);
+      }
+
+      .footer-section ul {
+        list-style: none;
+      }
+
+      .footer-section ul li {
+        margin-bottom: 8px;
+      }
+
+      .footer-section a {
+        color: #fff8e1;
+        opacity: 0.8;
+      }
+      .footer-section a:hover {
+        opacity: 1;
+        color: var(--color-accent);
+      }
+
+      .footer-bottom {
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        padding-top: 20px;
+        margin-top: 20px;
+        opacity: 0.7;
+      }
+
+      /* 리뷰/Q&A 공통 스타일 */
+      .review-list,
+      .qna-list {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .review-item {
+        border: 1px solid var(--color-border);
+        padding: 20px;
+        border-radius: 8px;
+      }
+
+      .review-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+      .review-user,
+      .review-date {
+        color: var(--color-text-light);
+      }
+
+      .review-rating {
+        color: var(--color-accent);
+        font-size: 18px;
+        margin-bottom: 5px;
+      }
+
+      .review-body {
+        font-size: 15px;
+        color: var(--color-text-dark);
+        margin-bottom: 10px;
+      }
+
+      .review-helpful {
+        text-align: right;
+        font-size: 13px;
+        color: var(--color-text-light);
+      }
+
+      #footer {
+        background-color: var(--color-dark-footer);
+        color: #a0a0a0; /* 어두운 배경에 밝은 텍스트 */
+        padding: 40px 0;
+        font-size: 13px;
+      }
+
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .footer-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .footer-info .copyright,
+      .footer-info .customer-center {
+        flex: 1;
+        line-height: 1.8;
+      }
+
+      .footer-info .copyright strong {
+        color: #c0c0c0;
+      }
+      /* ==== 공통 우측 사용자 메뉴 (텍스트 2 + 노란 pill 1) ==== */
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+      }
+
+      /* 기본 텍스트 링크(마이페이지/장바구니) */
+      .user-menu .user-link {
+        display: inline-block;
+        font-weight: 700;
+        color: #333;
+        text-decoration: none;
+        padding: 6px 8px;
+      }
+      .user-menu .user-link:hover {
+        color: var(--color-primary);
+      }
+
+      /* 로그인만 노란 pill 버튼 */
+      .user-menu .user-link.pill {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+      }
+      .user-menu .user-link.pill:hover {
+        background: var(--color-accent);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header">
+      <div class="container">
+        <h2 class="logo">
+          <img src="../img/high-five.png" alt="logo" width="100" height="100" />
+          <div class="brand">HIGH-FIVE-BOOKS</div>
+        </h2>
+
+        <nav class="gnb">
+          <div class="search-box">
+            <input type="text" placeholder="검색어를 입력하세요" />
+            <button class="search-btn">검색</button>
+          </div>
+
+          <!-- <ul class="writing">
+            <li><a href="">베스트 셀러</a></li>
+            <li><a href="./">신간</a></li>
+            <li><a href="./">국내 도서</a></li>
+          </ul> -->
+        </nav>
+
+        <div class="user-menu">
+          <a href="#" class="cart-link" title="마이페이지로 이동"
+            >마이페이지
+          </a>
+          <a href="#" class="cart-link" title="장바구니로 이동"> 장바구니 </a>
+          <button type="button" class="login-btn-top">로그인</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="container2">
+      <section class="book-detail-main">
+        <div class="book-image">
+          <img src=""../img/book1.jpeg" alt="도서 표지" />
+        </div>
+        <div class="book-info">
+          <h1>프론트엔드 개발자를 위한 자바스크립트 바이블</h1>
+          <p class="author-publisher">
+            저자: <a href="#">홍길동</a> | 출판사:
+            <a href="#">HIGH-FIVE 출판사</a> | 2024년 11월 1일 출간
+          </p>
+
+          <div class="price-section">
+            <p class="original-price">정가: 45,000원</p>
+            <div class="discount-price">
+              <span class="discount-rate">10%</span>
+              <span class="final-price">40,500원</span>
+            </div>
+            <p
+              style="
+                font-size: 14px;
+                color: var(--color-text-light);
+                margin-top: 10px;
+              "
+            >
+              [적립] 포인트 405P (구매 금액의 1%)
+            </p>
+          </div>
+
+          <div class="purchase-actions">
+            <button class="btn-secondary">❤️</button>
+            <button class="btn-secondary">🛒 장바구니 담기</button>
+            <button class="btn-primary">바로 구매</button>
+          </div>
+
+          <table class="summary-table">
+            <tr>
+              <th>ISBN</th>
+              <td>9791168921868</td>
+            </tr>
+            <tr>
+              <th>페이지</th>
+              <td>520쪽</td>
+            </tr>
+            <tr>
+              <th>배송</th>
+              <td>2일 이내 (3만원 이상 무료)</td>
+            </tr>
+            <tr>
+              <th>재고</th>
+              <td>재고 있음 (50권 이상)</td>
+            </tr>
+          </table>
+        </div>
+      </section>
+
+      <nav class="book-detail-tabs">
+        <button class="active" data-tab="description">도서 소개</button>
+        <button data-tab="contents">목차</button>
+        <button data-tab="review">리뷰 (128)</button>
+        <button data-tab="qna">Q&A (3)</button>
+        <button data-tab="info">배송/환불 정보</button>
+      </nav>
+
+      <section id="tab-description" class="detail-tab-content active">
+        <h2 class="section-title">도서 소개</h2>
+        <div style="font-size: 15px; line-height: 1.8">
+          <p>
+            이 책은 최신 자바스크립트(ES2024) 문법부터 비동기 처리, 웹 컴포넌트,
+            프레임워크 없는 모던 프론트엔드 개발 방법론까지 모두 다룹니다.
+            자바스크립트의 깊은 원리를 이해하고 실제 서비스에 적용하는 방법을
+            배우고자 하는 모든 프론트엔드 개발자에게 필수적인 가이드입니다.
+            복잡한 내용을 시각적인 예시와 실습 코드로 쉽게 풀어내어 초급자와
+            숙련자 모두에게 유용합니다.
+          </p>
+          <br />
+          <p style="font-weight: 600">✨ 주요 내용:</p>
+          <ul>
+            <li>반복되는 자바스크립트 면접 질문 완벽 대비</li>
+            <li>Node.js를 활용한 백엔드와의 통합 방법</li>
+            <li>성능 최적화 및 테스트 자동화 기법</li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="tab-contents" class="detail-tab-content">
+        <h2 class="section-title">목차</h2>
+        <ol style="margin-left: 20px; font-size: 15px">
+          <li>Chapter 1. 자바스크립트의 기본 구조와 역사</li>
+          <li>Chapter 2. 비동기 프로그래밍 (Promise, async/await)</li>
+          <li>Chapter 3. 모던 웹 컴포넌트와 상태 관리</li>
+          <li>Chapter 4. 테스트 자동화와 디버깅</li>
+          <li>...더보기</li>
+        </ol>
+      </section>
+
+      <section id="tab-review" class="detail-tab-content">
+        <h2 class="section-title">리뷰</h2>
+        <div class="review-list">
+          <div class="review-item">
+            <div class="review-header">
+              <span class="review-user">사용자***</span>
+              <span class="review-date">2025.11.05</span>
+            </div>
+            <div class="review-rating">⭐⭐⭐⭐⭐</div>
+            <div class="review-body">
+              바이블이라는 제목에 걸맞게 내용이 정말 방대하고 깊이가 있습니다.
+              특히 비동기 처리 부분에서 막혔던 개념을 명확히 이해하게
+              되었습니다.
+            </div>
+            <div class="review-helpful">도움이 됐어요 (15)</div>
+          </div>
+          <div class="review-item">
+            <div class="review-header">
+              <span class="review-user">개발자**</span>
+              <span class="review-date">2025.10.28</span>
+            </div>
+            <div class="review-rating">⭐⭐⭐⭐</div>
+            <div class="review-body">
+              초보자가 보기엔 조금 어려울 수 있지만, 중급 이상 개발자에게는
+              필수적인 책입니다. 다만, 예제 코드의 업데이트가 조금 아쉽습니다.
+            </div>
+            <div class="review-helpful">도움이 됐어요 (5)</div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-qna" class="detail-tab-content">
+        <h2 class="section-title">상품 문의</h2>
+        <div class="qna-list">
+          <div
+            class="empty-message"
+            style="margin-top: 0; padding: 20px; border: none; background: none"
+          >
+            궁금한 점이 있으신가요? 문의를 남겨주세요.
+          </div>
+          <button
+            class="btn btn-primary"
+            style="align-self: flex-start; padding: 10px 20px"
+          >
+            문의 등록하기
+          </button>
+        </div>
+      </section>
+
+      <section id="tab-info" class="detail-tab-content">
+        <h2 class="section-title">배송/환불 정보</h2>
+        <p style="font-size: 15px; line-height: 1.8">
+          **배송 정보:** 영업일 기준 2일 이내 출고되며, 3만원 이상 구매 시 무료
+          배송입니다.
+          <br />
+          **교환/환불:** 상품 수령 후 7일 이내에 신청 가능하며, 고객 변심 시
+          왕복 배송비가 부과될 수 있습니다. 자세한 내용은 고객센터를 통해 확인해
+          주세요.
+        </p>
+      </section>
+    </div>
+    <footer id="footer">
+      <div class="container">
+        <div class="footer-links">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#"><strong>개인정보처리방침</strong></a>
+          <a href="#">관리자</a>
+        </div>
+
+        <div class="footer-info">
+          <div class="copyright">
+            <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+            통신판매업신고 2024-광주동구-01211 | 이메일: marco@nhn.com<br />
+            호스팅 제공자 NHN24 © NHN24. All Rights Reserved.
+          </div>
+          <div class="customer-center">
+            <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+            광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+            Fax 062-1234-5678
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // ⭐️ 도서 상세페이지 탭 스크립트
+      const tabButtons = document.querySelectorAll(".book-detail-tabs button");
+      const tabSections = document.querySelectorAll(".detail-tab-content");
+
+      tabButtons.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          // 1. 모든 버튼의 'active' 클래스 제거
+          tabButtons.forEach((b) => b.classList.remove("active"));
+          // 2. 클릭된 버튼에 'active' 클래스 추가
+          btn.classList.add("active");
+
+          const tab = btn.dataset.tab; // 예: "description", "review"
+          const tabId = "tab-" + tab; // 예: "tab-description"
+
+          // 3. 모든 섹션의 'active' 클래스 제거 (모두 숨기기)
+          tabSections.forEach((section) => {
+            section.classList.remove("active");
+          });
+
+          // 4. 해당하는 섹션에 'active' 클래스 추가 (보이기)
+          const activeSection = document.getElementById(tabId);
+          if (activeSection) {
+            activeSection.classList.add("active");
+          }
+        });
+      });
+
+      // ⭐️ 로그인 버튼 이동 스크립트 (기존 코드와 동일)
+      const loginButton = document.querySelector(".login-btn-top");
+      if (loginButton) {
+        loginButton.addEventListener("click", function () {
+          window.location.href = "../member/login.html";
+        });
+      }
+    </script>
+  </body>
+</html>

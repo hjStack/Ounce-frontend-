@@ -1,0 +1,166 @@
+.resume {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100vh;
+}
+
+.content {
+  display: flex;
+  flex-direction: row;
+  width: 30%;
+  height: 100%;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.info_graph {
+  width: 40%;
+  height: 97%;
+  display: flex;
+  flex-flow: column;
+  background-color: #5c62d6;
+  padding-top: 20px; /* 위쪽 여백 (선택) */
+  color: white;
+  flex: 1;
+}
+
+.picture1 {
+  display: flex;
+  flex-direction: column;
+  justify-content: center; /* 가로 중앙 정렬 */
+  align-items: center; /* 세로 중앙 정렬 */
+}
+
+.img1 {
+  border-radius: 50%;
+  width: 8rem;
+  height: 8rem;
+  margin: 20px 20px;
+}
+
+.line {
+  border: 1px solid rgba(255, 255, 255, 0.3); /* 흰색 + 30% 불투명 */
+  width: 100%;
+}
+
+.basic {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.pInfo1 {
+  color: white;
+  font-size: 14px; /* 상단 글씨는 약간 더 크고 선명하게 */
+  font-weight: bold;
+}
+.pInfo2 {
+  color: rgba(255, 255, 255, 0.6); /* 흰색인데 60% 투명하게 */
+  font-size: 10px; /* 더 작게 */
+  font-weight: normal; /* 기본 굵기 */
+}
+
+.personal_information {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(211, 203, 193);
+  width: 60%;
+  height: 100%;
+  display: flex;
+  box-sizing: border-box;
+}
+
+.name_info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  text-align: left;
+  height: 150px;
+  padding: 19px 15px;
+  gap: 10px;
+}
+
+.n1 {
+  color: blue;
+  font-size: 13px;
+  justify-content: center;
+}
+
+.n2 {
+  color: #5c62d6;
+  font-size: 20px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  padding: 16px;
+}
+
+.info1 {
+  display: flex;
+  flex-direction: row;
+}
+
+.career {
+  display: flex;
+  font-size: 14px;
+  padding: 25px 20px;
+  gap: 30px;
+}
+
+.career1 {
+  display: flex;
+  flex-direction: column;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+.font1 {
+  font-size: 8px;
+  color: aliceblue;
+}
+
+.License {
+  display: flex;
+  flex-direction: column;
+  padding: 17px;
+  font-size: 13px;
+}
+
+.License1 {
+  font-size: 13px;
+}
+
+.Experience {
+  display: flex;
+  flex-direction: row;
+  padding: 25px 20px;
+  font-size: 15px;
+  font-weight: bold;
+  gap: 10px;
+}
+
+.skills {
+  padding: 10px;
+}
+
+.Skills_ins {
+  display: flex;
+  flex-direction: row;
+  gap: 5px;
+}
+
+.sk1 {
+  border-radius: 50%;
+}
+
+.sk_Wr {
+  padding: 0 5px;
+}
+
+.Skills_ins {
+  padding: 3px 10px;
+}

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>회원가입</title>
+    <style>
+      :root {
+        --color-primary: #007bff; /* 짙은 포레스트 블루 */
+        --color-accent: #e9c46a; /* 빈티지 골드/옐로 */
+        --color-background: #fcf8f5;
+        --color-dark-footer: #3e2723;
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+      }
+      /* ------------------------------------- */
+      /* 1. 기본 설정 및 초기화 */
+      /* ------------------------------------- */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        color: var(--color-text-dark);
+        line-height: 1.6;
+        background-color: var(--color-background); /* 베이지 배경 */
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      a:hover {
+        color: var(--color-accent); /* 호버 시 따뜻한 코랄 */
+      }
+
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: none;
+      }
+
+      input {
+        font-family: inherit;
+      }
+
+      /* 레이아웃 편의를 위한 .container 클래스 */
+      .container {
+        width: 100%;
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 10px 20px;
+      }
+
+      .writing {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+      }
+
+      /* ------------------------------------- */
+      /* 2. 헤더 스타일링 */
+      /* ------------------------------------- */
+
+      #header {
+        background-color: #ffffff;
+        border-bottom: 3px solid var(--color-primary); /* 딥 블루 라인 */
+        padding: 15px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      #header .container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .logo a {
+        font-size: 30px;
+        font-weight: 900;
+        color: var(--color-primary);
+        display: flex;
+        flex-direction: row;
+      }
+
+      .gnb {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        border: none;
+        border-top: 10px;
+      }
+
+      /* 검색창 */
+      .gnb .search-box {
+        display: flex;
+        /* 검색 버튼을 입력창에 딱 붙이기 위해 테두리를 바깥으로 뺍니다. */
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        margin-right: 0;
+        width: 360px; /* 검색창 너비 조정 */
+      }
+
+      .gnb .search-box input {
+        flex-grow: 1;
+        border: none;
+        padding: 8px 15px;
+        outline: none;
+      }
+
+      .gnb .search-box .search-btn {
+        padding: 8px 15px;
+        background-color: var(--color-primary);
+        color: white;
+        transition: background-color 0.2s ease;
+        border-radius: 0;
+        white-space: nowrap; /* "검색" 텍스트가 줄바꿈되지 않도록 */
+      }
+
+      .gnb .search-box .search-btn:hover {
+        background-color: #0056b3; /* 더 진한 블루 */
+      }
+
+      /* GNB 메뉴 */
+      .gnb ul {
+        display: flex;
+        list-style: none;
+        margin: 10px 10px;
+        gap: 20px;
+      }
+
+      .gnb ul li a {
+        font-weight: 500;
+        color: var(--color-text-dark);
+      }
+
+      /* 헤더 유저 메뉴 */
+      .user-menu {
+        display: flex; /* 장바구니와 로그인 버튼을 가로로 정렬 */
+        align-items: center;
+        gap: 15px; /* 버튼과 아이콘 사이 간격 */
+      }
+
+      /* 장바구니 아이콘 스타일 추가 */
+      .user-menu .cart-link {
+        color: black;
+        font-size: 16px;
+        font-weight: 700;
+        /* 유니코드나 아이콘 폰트 사용 시 패딩으로 크기 조정 */
+        padding: 5px;
+      }
+
+      .user-menu .login-btn-top {
+        border: 2px solid var(--color-accent); /* 코랄 테두리 */
+        color: var(--color-accent);
+        background-color: white;
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        transition: all 0.2s ease;
+      }
+
+      .user-menu .login-btn-top:hover {
+        background-color: var(--color-accent);
+        color: white;
+      }
+
+      .container2 {
+        max-width: 900px;
+        margin: 30px auto;
+        padding: 20px;
+      }
+
+      .logo {
+        /* 로고 컨테이너를 Flexbox로 설정 */
+        display: flex;
+        align-items: center; /* 수직 중앙 정렬 */
+        gap: 5px; /* 이미지와 텍스트 사이 간격 */
+      }
+
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080;
+        margin-top: 5px;
+      }
+      .container2 nav {
+        display: flex;
+        gap: 10px;
+
+        border-bottom: 1px solid #000080;
+        padding-bottom: 0px;
+      }
+
+      .container2 nav button {
+        background: none;
+        padding: 10px 15px;
+        font-size: 16px;
+        font-weight: 500;
+        color: var(--color-text-light);
+        border-bottom: 3px solid transparent; /* 기본 밑줄 없음 */
+        transition: color 0.2s, border-bottom 0.2s;
+      }
+
+      .container2 nav button.active {
+        color: var(--color-primary);
+        font-weight: 700;
+        border-bottom: 3px solid var(--color-primary); /* 활성화 탭 표시 */
+      }
+
+      /* ------------------------------------- */
+      /* 3. 메인 콘텐츠 (회원가입 영역) */
+      /* ------------------------------------- */
+
+      #container {
+        flex-grow: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 60px 0;
+        background-color: #ffffff;
+      }
+
+      .login-area {
+        width: 100%;
+        max-width: 420px;
+        background-color: #ffffff;
+        padding: 50px;
+        border-radius: 10px;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--color-border-light);
+      }
+
+      /* .login-area 내의 h2 제목 (탭 메뉴 대신 사용 시) */
+      .login-area .register-title {
+        text-align: center;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-primary);
+        margin-bottom: 30px;
+        background-color: #ffffff;
+      }
+
+      /* 폼 입력 필드 (로그인/회원가입 공통 스타일) */
+      .register-form .input-group {
+        margin-bottom: 20px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* 폼 입력 필드 (회원가입 폼을 위해 .register-form으로 변경) */
+      .register-form label {
+        font-size: 14px;
+        color: var(--color-text-light);
+        margin-bottom: 8px;
+      }
+
+      .register-form input[type="text"],
+      .register-form input[type="password"],
+      .register-form input[type="email"],
+      .register-form input[type="number"] {
+        width: 100%;
+        padding: 14px 15px;
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        font-size: 15px;
+        transition: border-color 0.2s ease;
+      }
+
+      .register-form input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.2);
+      }
+
+      /* 가입하기 버튼 */
+      .login-btn {
+        width: 100%;
+        padding: 15px;
+        background-color: var(--color-primary);
+        color: white;
+        font-size: 16px;
+        font-weight: 700;
+        border-radius: 4px;
+        margin-top: 10px;
+        transition: background-color 0.2s ease;
+      }
+
+      .login-btn:hover {
+        background-color: #0056b3;
+      }
+
+      #footer {
+        background-color: var(--color-dark-footer);
+        color: #a0a0a0; /* 어두운 배경에 밝은 텍스트 */
+        padding: 40px 0;
+        font-size: 13px;
+      }
+
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: white;
+      }
+
+      .footer-info {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .footer-info .copyright,
+      .footer-info .customer-center {
+        flex: 1;
+        line-height: 1.8;
+      }
+
+      .footer-info .copyright strong {
+        color: #c0c0c0;
+      }
+    </style>
+  </head>
+  <body>
+    <header id="header">
+      <div class="container">
+        <h2 class="logo">
+          <img src="../img/high-five.png" alt="logo" width="100" height="100" />
+          <div class="brand">HIGH-FIVE-BOOKS</div>
+        </h2>
+
+        <nav class="gnb">
+          <div class="search-box">
+            <input type="text" placeholder="검색어를 입력하세요" />
+            <button class="search-btn">검색</button>
+          </div>
+
+<!--          <ul class="writing">-->
+<!--            <li><a href="">베스트 셀러</a></li>-->
+<!--            <li><a href="../../../../../../nhnacademy_5/member">추천도서</a></li>-->
+<!--            <li><a href="../../../../../../nhnacademy_5/member">국내 도서</a></li>-->
+<!--          </ul>-->
+        </nav>
+
+        <div class="user-menu">
+          <a href="#" class="cart-link" title="장바구니로 이동">마이페이지 </a>
+          <a href="#" class="cart-link" title="장바구니로 이동"> 장바구니 </a>
+          <button type="button" class="login-btn-top">로그인</button>
+        </div>
+      </div>
+    </header>
+    <main id="container">
+      <div class="login-area">
+        <h2 class="register-title">회원가입</h2>
+
+        <form class="register-form">
+          <div class="input-group">
+            <label for="regName">이름</label>
+            <input type="text" id="regName" placeholder="이름을 입력하세요" />
+          </div>
+
+          <div class="input-group">
+            <label for="regEmail">이메일</label>
+            <input
+              type="email"
+              id="regEmail"
+              placeholder="이메일 주소를 입력하세요"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="regId">아이디</label>
+            <input
+              type="text"
+              id="regId"
+              placeholder="아이디를 입력하세요 (영문, 숫자 6~12자)"
+            />
+          </div>
+          <div class="input-group">
+            <label for="regPw">비밀번호</label>
+            <input
+              type="password"
+              id="regPw"
+              placeholder="비밀번호를 입력하세요"
+            />
+          </div>
+          <div class="input-group">
+            <label for="regPwConfirm">비밀번호 확인</label>
+            <input
+              type="password"
+              id="regPwConfirm"
+              placeholder="비밀번호를 다시 입력하세요"
+            />
+          </div>
+
+          <div class="input-group">
+            <label for="phoneNumber">연락처</label>
+            <input
+              type="number"
+              id="phoneNumber"
+              placeholder="핸드폰 번호를 입력하세요"
+            />
+          </div>
+
+          <button type="submit" class="login-btn">가입하기</button>
+        </form>
+      </div>
+    </main>
+  </body>
+
+  <footer id="footer">
+    <div class="container">
+      <div class="footer-links">
+        <a href="#">회사소개</a>
+        <a href="#">이용약관</a>
+        <a href="#"><strong>개인정보처리방침</strong></a>
+        <a href="#">관리자</a>
+      </div>
+
+      <div class="footer-info">
+        <div class="copyright">
+          <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+          통신판매업신고 2024-광주동구-01211 | 이메일: marco@nhn.com<br />
+          호스팅 제공자 NHN24 © NHN24. All Rights Reserved.
+        </div>
+        <div class="customer-center">
+          <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+          광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+          Fax 062-1234-5678
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    // 1. 헤더의 로그인 버튼 요소를 찾습니다.
+    const loginButton = document.querySelector(".login-btn-top");
+
+    // 2. 버튼이 존재하면 클릭 이벤트를 연결합니다.
+    if (loginButton) {
+      loginButton.addEventListener("click", function () {
+        // 3. 'login.html'로 페이지를 이동시킵니다.
+        // (실제 파일 이름에 맞게 경로를 수정해야 합니다. 예: /login/index.html)
+        window.location.href = "login.html";
+
+        // 개발 중일 경우, alert로 확인 메시지를 띄울 수도 있습니다.
+        // alert("로그인 페이지로 이동합니다.");
+      });
+    }
+  </script>
+</html>

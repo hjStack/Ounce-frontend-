@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HIGH-FIVE 도서 | 홈</title>
+    <style>
+      :root {
+        --color-primary: #007bff;
+        --color-accent: #e9c46a;
+        --color-background: #fcf8f5;
+        --color-dark-footer: #3e2723;
+        --color-text-light: #666;
+        --color-text-dark: #333;
+        --color-border-light: #eee;
+        --color-border: #ddd;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Noto Sans KR", sans-serif;
+        color: var(--color-text-dark);
+        line-height: 1.6;
+        background: var(--color-background);
+        display: flex;
+        flex-direction: column;
+        min-height: 100vh;
+      }
+      a {
+        color: var(--color-primary);
+        text-decoration: none;
+        transition: 0.2s;
+      }
+      a:hover {
+        color: #0056b3;
+      }
+      button {
+        font-family: inherit;
+        cursor: pointer;
+        border: 0;
+      }
+      img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+      }
+      .container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 10px 20px;
+      }
+
+      /* 헤더 */
+      #header {
+        background: #fff;
+        border-bottom: 3px solid var(--color-primary);
+        padding: 12px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      #header .container {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+      .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .logo img {
+        width: 64px;
+        height: 64px;
+        object-fit: contain;
+      }
+      .logo .brand {
+        font-size: 24px;
+        font-weight: 900;
+        color: var(--color-primary);
+      }
+      .gnb {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .search-box {
+        display: flex;
+        border: 1px solid var(--color-border);
+        border-radius: 20px;
+        overflow: hidden;
+        width: 520px;
+        max-width: 100%;
+      }
+      .search-box input {
+        flex: 1;
+        border: 0;
+        padding: 10px 14px;
+        outline: none;
+        background: #fff;
+      }
+      .search-box button {
+        background: var(--color-primary);
+        color: #fff;
+        padding: 10px 16px;
+        white-space: nowrap;
+      }
+      .menu-row {
+        display: flex;
+        gap: 18px;
+        margin-top: 8px;
+        list-style: none;
+      }
+      .menu-row a {
+        color: var(--color-text-dark);
+        font-weight: 600;
+      }
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-left: auto;
+      }
+      .user-menu .pill {
+        border: 2px solid var(--color-accent);
+        color: var(--color-accent);
+        background: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-weight: 700;
+      }
+      .user-menu .pill:hover {
+        background: var(--color-accent);
+        color: #fff;
+      }
+
+      /* 메인 */
+      main {
+        flex: 1;
+        padding: 20px 0;
+      }
+
+      /* 히어로 배너 */
+      .hero {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+        border: 1px solid var(--color-border-light);
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+      }
+      .slides {
+        display: flex;
+        transition: transform 0.5s ease;
+      }
+      .slide {
+        min-width: 100%;
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr;
+        gap: 10px;
+        align-items: center;
+        padding: 26px;
+      }
+      .slide .copy h2 {
+        font-size: 28px;
+        margin-bottom: 8px;
+        color: #0b5ed7;
+      }
+      .slide .copy p {
+        color: var(--color-text-light);
+      }
+      .slide .cta {
+        margin-top: 14px;
+        display: flex;
+        gap: 10px;
+      }
+      .btn {
+        padding: 10px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+      }
+      .btn.primary {
+        background: var(--color-primary);
+        color: #fff;
+      }
+      .btn.ghost {
+        border: 1px solid var(--color-border);
+        background: #fff;
+        color: var(--color-text-dark);
+      }
+      .hero .nav {
+        position: absolute;
+        inset: auto 12px 12px auto;
+        display: flex;
+        gap: 6px;
+      }
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #c7d7f7;
+        opacity: 0.7;
+      }
+      .dot.active {
+        background: #0b5ed7;
+        opacity: 1;
+      }
+      .hero .hero-img {
+        width: 100%;
+        height: auto;
+        border-radius: 12px;
+        object-fit: cover;
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+      }
+
+      /* 카테고리 탭 */
+      .tabs {
+        margin-top: 18px;
+        background: #fff;
+        border: 1px solid var(--color-border-light);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .tabs .tab-bar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 10px;
+        border-bottom: 1px solid var(--color-border-light);
+      }
+      .tab-btn {
+        padding: 8px 12px;
+        border-radius: 20px;
+        background: #f2f6ff;
+        color: #0b5ed7;
+        font-weight: 700;
+      }
+      .tab-btn[aria-selected="true"] {
+        background: #0b5ed7;
+        color: #fff;
+      }
+      .tab-panels {
+        padding: 14px;
+      }
+      .cat-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 10px;
+      }
+      .cat {
+        background: #fff;
+        border: 1px solid var(--color-border-light);
+        border-radius: 10px;
+        padding: 12px;
+        text-align: center;
+      }
+      .cat span {
+        display: block;
+        margin-top: 6px;
+        font-weight: 600;
+        color: #333;
+      }
+
+      /* 섹션 헤더 */
+      .section {
+        margin-top: 28px;
+      }
+      .section .head {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-bottom: 10px;
+      }
+      .section .head h3 {
+        font-size: 20px;
+      }
+      .section .head .more {
+        font-size: 14px;
+      }
+
+      /* 카드 그리드 */
+      .card-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+      }
+      .card {
+        background: #fff;
+        border: 1px solid var(--color-border-light);
+        border-radius: 10px;
+        overflow: hidden;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+      }
+      .thumb {
+        aspect-ratio: 3/4;
+        background: #f2f2f2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #999;
+        font-weight: 700;
+      }
+      .info {
+        padding: 12px;
+      }
+      .title {
+        font-weight: 700;
+        margin-bottom: 6px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .meta {
+        font-size: 13px;
+        color: var(--color-text-light);
+      }
+      .price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 10px;
+      }
+      .price {
+        font-weight: 900;
+        color: #222;
+      }
+      .badge {
+        font-size: 12px;
+        color: #fff;
+        background: var(--color-primary);
+        padding: 2px 6px;
+        border-radius: 6px;
+      }
+
+      .logo .brand {
+        font-size: 21px;
+        font-weight: 900;
+        color: #000080;
+        margin-top: 5px;
+      }
+
+      /* 배너 슬림 */
+      .strip {
+        margin-top: 24px;
+        border: 1px dashed var(--color-border);
+        border-radius: 10px;
+        padding: 10px;
+        background: #fff;
+      }
+      .strip-inner {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .chip {
+        padding: 6px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--color-border);
+        background: #fff;
+        font-weight: 600;
+      }
+
+      /* 푸터 */
+      #footer {
+        background: var(--color-dark-footer);
+        color: #a0a0a0;
+        padding: 34px 0;
+        font-size: 13px;
+        margin-top: 32px;
+      }
+      #footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+      }
+      .footer-links a {
+        color: #c0c0c0;
+        margin-right: 15px;
+      }
+      .footer-links a:hover {
+        color: #fff;
+      }
+      .footer-info {
+        display: flex;
+        gap: 20px;
+        justify-content: space-between;
+      }
+      .footer-info > div {
+        flex: 1;
+        line-height: 1.8;
+      }
+      .footer-info strong {
+        color: #c0c0c0;
+      }
+
+      /* 반응형 */
+      @media (max-width: 992px) {
+        .slide {
+          grid-template-columns: 1fr;
+        }
+        .card-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        .cat-grid {
+          grid-template-columns: repeat(4, 1fr);
+        }
+      }
+      @media (max-width: 600px) {
+        .user-menu {
+          display: none;
+        }
+        .menu-row {
+          display: none;
+        }
+        .card-grid {
+          grid-template-columns: repeat(2, 1fr);
+        }
+        .cat-grid {
+          grid-template-columns: repeat(3, 1fr);
+        }
+      }
+
+      /* ==== 공통 우측 사용자 메뉴 (텍스트 2 + 노란 pill 1) ==== */
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        margin-left: auto;
+      }
+
+      /* 기본 텍스트 링크(마이페이지/장바구니) */
+      .user-menu .user-link {
+        display: inline-block;
+        font-weight: 700;
+        color: #333;
+        text-decoration: none;
+        padding: 6px 8px;
+      }
+      .user-menu .user-link:hover {
+        color: var(--color-primary);
+      }
+
+      /* 로그인만 노란 pill 버튼 */
+      .user-menu .user-link.pill {
+        border: 2px solid var(--color-accent); /* 노란 테두리 */
+        color: var(--color-accent);
+        background: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+      }
+      .user-menu .user-link.pill:hover {
+        background: var(--color-accent);
+        color: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- 헤더 -->
+    <header id="header" role="banner">
+      <div class="container">
+        <div class="logo">
+          <img src="templates/img/high-five.png" alt="HIGH-FIVE 로고" />
+          <div class="brand">HIGH-FIVE BOOKS</div>
+        </div>
+
+        <nav class="gnb" aria-label="주요 메뉴">
+          <div class="search-box" role="search">
+            <input
+              type="search"
+              placeholder="도서명, 저자, ISBN, 태그 검색"
+              aria-label="통합 검색"
+            />
+            <button class="search-btn" aria-label="검색">검색</button>
+          </div>
+        </nav>
+
+        <div class="user-menu">
+          <a class="user-link" href="./mypage.html">마이페이지</a>
+          <a class="user-link" href="./cart.html">장바구니</a>
+          <a class="user-link pill" href="./login.html">로그인</a>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <div class="container">
+        <!-- 히어로 배너 -->
+        <section class="hero" aria-label="프로모션 배너">
+          <div class="slides" id="slides">
+            <!-- slide 1 -->
+            <article class="slide" aria-roledescription="slide">
+              <div class="copy">
+                <h2>봄 신간 위크 🌿</h2>
+                <p>신간 구매 시 굿즈 증정 & 포인트 최대 10%</p>
+                <div class="cta">
+                  <a href="#" class="btn primary">신간 모아보기</a>
+                  <a href="#" class="btn ghost">굿즈 안내</a>
+                </div>
+              </div>
+              <div>
+                <img
+                  class="hero-img"
+                  src="templates/img/book1.jpeg"
+                  alt="추천 도서 표지 이미지"
+                />
+              </div>
+            </article>
+            <!-- slide 2 -->
+            <article class="slide" aria-roledescription="slide">
+              <div class="copy">
+                <h2>베스트셀러 1위 🔥</h2>
+                <p>이번 주 가장 많이 읽힌 책을 만나보세요</p>
+                <div class="cta">
+                  <a href="#" class="btn primary">베스트 바로가기</a>
+                  <a href="#" class="btn ghost">리뷰 보기</a>
+                </div>
+              </div>
+              <div>
+                <div class="thumb" aria-hidden="true">BANNER</div>
+              </div>
+            </article>
+            <!-- slide 3 -->
+            <article class="slide" aria-roledescription="slide">
+              <div class="copy">
+                <h2>eBook 특가전 ✨</h2>
+                <p>전자책 최대 70% 할인! 지금 소장하세요</p>
+                <div class="cta">
+                  <a href="#" class="btn primary">특가 보러가기</a>
+                  <a href="#" class="btn ghost">카테고리</a>
+                </div>
+              </div>
+              <div>
+                <div class="thumb" aria-hidden="true">BANNER</div>
+              </div>
+            </article>
+          </div>
+          <div class="nav" aria-label="슬라이드 위치 표시">
+            <span class="dot active" data-idx="0"></span>
+            <span class="dot" data-idx="1"></span>
+            <span class="dot" data-idx="2"></span>
+          </div>
+        </section>
+
+        <!-- 카테고리 탭 -->
+        <section class="tabs" aria-label="카테고리">
+          <div class="tab-bar" role="tablist">
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="true"
+              data-tab="domestic"
+            >
+              국내도서
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="foreign"
+            >
+              외국도서
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="ebook"
+            >
+              eBook
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="kids"
+            >
+              유아·아동
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="it"
+            >
+              IT·개발
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="economy"
+            >
+              경제·경영
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="human"
+            >
+              인문
+            </button>
+            <button
+              class="tab-btn"
+              role="tab"
+              aria-selected="false"
+              data-tab="self"
+            >
+              자기계발
+            </button>
+          </div>
+          <div class="tab-panels">
+            <div id="panel-domestic" class="cat-grid" role="tabpanel">
+              <a class="cat" href="#"
+                ><div class="thumb">소설</div>
+                <span>소설</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">시/에세이</div>
+                <span>시/에세이</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">인문</div>
+                <span>인문</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">사회/정치</div>
+                <span>사회/정치</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">경제/경영</div>
+                <span>경제/경영</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">자기계발</div>
+                <span>자기계발</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">과학</div>
+                <span>과학</span></a
+              >
+              <a class="cat" href="#"
+                ><div class="thumb">여행</div>
+                <span>여행</span></a
+              >
+            </div>
+            <div
+              id="panel-foreign"
+              class="cat-grid"
+              role="tabpanel"
+              hidden
+            ></div>
+            <div id="panel-ebook" class="cat-grid" role="tabpanel" hidden></div>
+            <div id="panel-kids" class="cat-grid" role="tabpanel" hidden></div>
+            <div id="panel-it" class="cat-grid" role="tabpanel" hidden></div>
+            <div
+              id="panel-economy"
+              class="cat-grid"
+              role="tabpanel"
+              hidden
+            ></div>
+            <div id="panel-human" class="cat-grid" role="tabpanel" hidden></div>
+            <div id="panel-self" class="cat-grid" role="tabpanel" hidden></div>
+          </div>
+        </section>
+
+        <!-- 베스트셀러 -->
+        <section class="section" aria-labelledby="best-title">
+          <div class="head">
+            <h3 id="best-title">베스트셀러</h3>
+            <a class="more" href="#">더보기</a>
+          </div>
+          <div class="card-grid" id="best-grid">
+            <!-- 샘플 카드 5개 -->
+            <article class="card">
+              <div class="thumb">
+                <img src="templates/img/book2.jpeg" alt="트랜드 코리아 2026 표지" />
+              </div>
+              <div class="info">
+                <div class="title">트랜드 코리아 2026</div>
+                <div class="meta">김난도 외 · 2025</div>
+                <div class="price-row">
+                  <span class="price">₩20,000</span
+                  ><span class="badge">10%↓</span>
+                </div>
+              </div>
+            </article>
+            <article class="card">
+              <div class="thumb">
+                <img
+                  src="templates/img/book3.jpeg"
+                  alt="처음 만나는 양자의 세계 표지"
+                />
+              </div>
+              <div class="info">
+                <div class="title">처음 만나는 양자의 세계</div>
+                <div class="meta">채은미 · 2025</div>
+                <div class="price-row">
+                  <span class="price">₩19,000</span
+                  ><span class="badge">베스트</span>
+                </div>
+              </div>
+            </article>
+            <article class="card">
+              <div class="thumb">
+                <img
+                  src="templates/img/book4.jpeg"
+                  alt="대형주 추세추종 투자법칙 표지"
+                />
+              </div>
+              <div class="info">
+                <div class="title">대형주 추세추종 투자법칙</div>
+                <div class="meta">이종호(전황) · 2025</div>
+                <div class="price-row">
+                  <span class="price">₩22,000</span
+                  ><span class="badge">키즈</span>
+                </div>
+              </div>
+            </article>
+            <article class="card">
+              <div class="thumb">
+                <img src="templates/img/book5.jpeg" alt="위버맨쉬 표지" />
+              </div>
+              <div class="info">
+                <div class="title">위버맨쉬</div>
+                <div class="meta">프리드리히 니체 · 2025</div>
+                <div class="price-row">
+                  <span class="price">₩17,800</span
+                  ><span class="badge">IT</span>
+                </div>
+              </div>
+            </article>
+            <article class="card">
+              <div class="thumb">
+                <img src="templates/img/book6.jpeg" alt="박곰희 연금 부자수업 표지" />
+              </div>
+              <div class="info">
+                <div class="title">박곰희 연금 부자수업</div>
+                <div class="meta">박곰희 · 2025</div>
+                <div class="price-row">
+                  <span class="price">₩21,000</span
+                  ><span class="badge">인기</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 신간/추천 2열 -->
+        <section class="section" aria-label="신간 및 추천">
+          <div class="head">
+            <h3>신간 · 추천</h3>
+          </div>
+          <div class="card-grid" style="grid-template-columns: repeat(5, 1fr)">
+            <!-- 신간 1 -->
+            <article class="card">
+              <div class="thumb">NEW</div>
+              <div class="info">
+                <div class="title">새 학기 첫 그림책</div>
+                <div class="meta">키즈 · 2025.03</div>
+                <div class="price-row">
+                  <span class="price">₩11,700</span
+                  ><span class="badge">신간</span>
+                </div>
+              </div>
+            </article>
+            <!-- 신간 2 -->
+            <article class="card">
+              <div class="thumb">NEW</div>
+              <div class="info">
+                <div class="title">디자인 시스템 완전정복</div>
+                <div class="meta">디자인 · 2025.02</div>
+                <div class="price-row">
+                  <span class="price">₩22,000</span
+                  ><span class="badge">신간</span>
+                </div>
+              </div>
+            </article>
+            <!-- 추천 1 -->
+            <article class="card">
+              <div class="thumb">REC</div>
+              <div class="info">
+                <div class="title">주니어 개발자 면접 질문집</div>
+                <div class="meta">IT · 추천</div>
+                <div class="price-row">
+                  <span class="price">₩18,500</span
+                  ><span class="badge">추천</span>
+                </div>
+              </div>
+            </article>
+            <!-- 추천 2 -->
+            <article class="card">
+              <div class="thumb">REC</div>
+              <div class="info">
+                <div class="title">행정 보고서 글쓰기</div>
+                <div class="meta">실무 · 추천</div>
+                <div class="price-row">
+                  <span class="price">₩17,100</span
+                  ><span class="badge">추천</span>
+                </div>
+              </div>
+            </article>
+            <!-- 추천 3 -->
+            <article class="card">
+              <div class="thumb">REC</div>
+              <div class="info">
+                <div class="title">공공데이터 분석과 RAG</div>
+                <div class="meta">데이터 · 추천</div>
+                <div class="price-row">
+                  <span class="price">₩24,300</span
+                  ><span class="badge">추천</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <!-- 슬림 배너/퀵링크 -->
+        <section class="strip" aria-label="빠른 링크">
+          <div class="strip-inner">
+            <a class="chip" href="#">오늘의 특가</a>
+            <a class="chip" href="#">사은품 안내</a>
+            <a class="chip" href="#">eBook 쿠폰</a>
+            <a class="chip" href="#">중고샵</a>
+            <a class="chip" href="#">MD의 선택</a>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <!-- 푸터 -->
+    <footer id="footer" role="contentinfo">
+      <div class="container">
+        <div class="footer-links">
+          <a href="#">회사소개</a>
+          <a href="#">이용약관</a>
+          <a href="#"><strong>개인정보처리방침</strong></a>
+          <a href="#">고객센터</a>
+        </div>
+        <div class="footer-info">
+          <div>
+            <strong>대표이사 마르코</strong> | 사업자등록번호 123-456-7890<br />
+            통신판매업신고 2024-광주동구-01211 | 이메일: help@highfive.com<br />
+            호스팅 제공자 NHN24 © HIGH-FIVE BOOKS. All Rights Reserved.
+          </div>
+          <div>
+            <strong>고객센터 1544-8282</strong> (발신자 부담)<br />
+            광주광역시 동구 서석동 조선대학교 1층 NHN아카데미<br />
+            Fax 062-1234-5678
+          </div>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // 슬라이드
+      const slides = document.getElementById("slides");
+      const dots = Array.from(document.querySelectorAll(".dot"));
+      let idx = 0;
+      function go(n) {
+        idx = (n + dots.length) % dots.length;
+        slides.style.transform = `translateX(-${idx * 100}%)`;
+        dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+      }
+      dots.forEach((d) =>
+        d.addEventListener("click", (e) => go(+e.target.dataset.idx))
+      );
+      setInterval(() => go(idx + 1), 5000);
+
+      // 탭
+      const tabBtns = document.querySelectorAll(".tab-btn");
+      const panels = {
+        domestic: document.getElementById("panel-domestic"),
+        foreign: document.getElementById("panel-foreign"),
+        ebook: document.getElementById("panel-ebook"),
+        kids: document.getElementById("panel-kids"),
+        it: document.getElementById("panel-it"),
+        economy: document.getElementById("panel-economy"),
+        human: document.getElementById("panel-human"),
+        self: document.getElementById("panel-self"),
+      };
+      tabBtns.forEach((btn) => {
+        btn.addEventListener("click", () => {
+          tabBtns.forEach((b) => b.setAttribute("aria-selected", "false"));
+          btn.setAttribute("aria-selected", "true");
+          Object.values(panels).forEach((p) => (p.hidden = true));
+          const key = btn.dataset.tab;
+          const panel = panels[key];
+          if (panel) {
+            panel.hidden = false;
+            // 필요 시 비어있는 패널에 동적 항목 예시 주입
+            if (!panel.dataset.filled) {
+              for (let i = 0; i < 8; i++) {
+                const a = document.createElement("a");
+                a.className = "cat";
+                a.href = "#";
+                a.innerHTML = `<div class="thumb">CAT</div><span>${
+                  btn.textContent
+                } ${i + 1}</span>`;
+                panel.appendChild(a);
+              }
+              panel.dataset.filled = "1";
+            }
+          }
+        });
+      });
+
+      // 검색 버튼(데모용)
+      document
+        .querySelector(".search-box button")
+        .addEventListener("click", () => {
+          const q = document.querySelector(".search-box input").value.trim();
+          if (!q) {
+            alert("검색어를 입력해 주세요.");
+            return;
+          }
+          // 실제 서비스에서는 /search?q= 로 라우팅
+          alert(`검색: ${q}`);
+        });
+    </script>
+  </body>
+</html>
