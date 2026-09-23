@@ -7,7 +7,7 @@ import { CartProvider } from "../components/CartContext";
 import SignupBenefitToast from "../components/SignupBenefitToast";
 import { ToastProvider } from "../components/ToastContext";
 
-const BANNER = String.raw`
+/* const BANNER = String.raw`
   ____  _    _ _   _  _____ ______
  / __ \| |  | | \ | |/ ____|  ____|
 | |  | | |  | |  \| | |    | |__
@@ -16,7 +16,7 @@ const BANNER = String.raw`
  \____/ \____/|_| \_|\_____|______|
 
   Ounce 
-`;
+`; */
 
 export default function Providers({ children }: { children: ReactNode }) {
     useEffect(() => {
@@ -39,11 +39,15 @@ export default function Providers({ children }: { children: ReactNode }) {
     }, []);
 
     useEffect(() => {
-        console.info(
-            `%c${BANNER}`,
-            "color: #2f7a5f; font-weight: 700; font-family: monospace; line-height: 1.2;"
-        );
+        void fetch("/api/csrf", {
+            credentials: "include",
+            cache: "no-store",
+        }).catch(() => {
+            // The backend may not expose the CSRF endpoint in local development.
+        });
     }, []);
+
+
 
     return (
         <ToastProvider>

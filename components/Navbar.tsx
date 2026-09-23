@@ -33,7 +33,8 @@ export default function Navbar() {
   const query = searchParams.toString();
   const currentPath = query ? `${pathname}?${query}` : pathname;
 
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const { user, loading: authLoading, isAuthenticated, isAdmin, logout } =
+    useAuth();
   const { count: cartCount } = useCart();
   const displayName = user?.email ? user.email.split("@")[0] : "사용자";
   const hidden = pathname.startsWith("/admin");
@@ -57,9 +58,10 @@ export default function Navbar() {
 
   // Auth is resolved in the browser. Keep auth-dependent markup stable during
   // SSR and the first hydration render, then reveal the correct controls.
-  const showAuthenticated = authMounted && isAuthenticated;
-  const showAdmin = authMounted && isAdmin;
-  const showGuest = authMounted && !isAuthenticated;
+  const authReady = authMounted && !authLoading;
+  const showAuthenticated = authReady && isAuthenticated;
+  const showAdmin = authReady && isAdmin;
+  const showGuest = authReady && !isAuthenticated;
 
   useEffect(() => {
     setAuthMounted(true);
