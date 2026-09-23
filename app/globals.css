@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "remixicon/fonts/remixicon.css";
 
+/* 아이콘 폰트가 첫 로딩 중 대체 글꼴의 네모 문자로 보이지 않게 한다. */
+@font-face {
+  font-family: "remixicon";
+  src: url("../node_modules/remixicon/fonts/remixicon.woff2") format("woff2");
+  font-display: block;
+}
+
 @theme {
   --font-sans:
     "Pretendard Variable", "Pretendard", -apple-system, BlinkMacSystemFont,
